@@ -79,7 +79,7 @@
   --chart-2: oklch(0.557 0.172 259.7);
   --chart-3: oklch(0.619 0.127 77);
   --chart-4: oklch(0.559 0.192 301.5);
-  --chart-5: oklch(0.648 0.007 286.2);
+  --chart-5: oklch(0.62 0.007 286.2); /* 3:1 on card; validated with chart-1 */
 }
 
 .dark {
@@ -120,11 +120,11 @@
   --sidebar-accent-foreground: oklch(0.971 0.003 286.4); /* = foreground */
   --sidebar-border: oklch(0 0 0 / 0);
   --sidebar-ring: oklch(0.712 0.164 154.1); /* = ring */
-  --chart-1: oklch(0.712 0.164 154.1);
+  --chart-1: oklch(0.67 0.17 154.1); /* inside the dark lightness band, unlike primary */
   --chart-2: oklch(0.729 0.142 256.5);
   --chart-3: oklch(0.758 0.14 76.7);
   --chart-4: oklch(0.735 0.165 307.3);
-  --chart-5: oklch(0.648 0.007 286.2);
+  --chart-5: oklch(0.54 0.007 286.2); /* darker than light mode, so chart-1 stays apart */
 }
 
 @theme inline {

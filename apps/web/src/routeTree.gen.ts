@@ -9,17 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppConnectRouteImport } from './routes/_app/connect'
+import { Route as AppCostsRouteImport } from './routes/_app/costs'
+import { Route as AppGalleryRouteImport } from './routes/_app/gallery'
+import { Route as AppModelsRouteImport } from './routes/_app/models'
 import { Route as FFileRouteImport } from './routes/f/$file'
+import { Route as AppTasksIndexRouteImport } from './routes/_app/tasks/index'
+import { Route as AppTasksTaskIdRouteImport } from './routes/_app/tasks/$taskId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsentRoute = ConsentRouteImport.update({
@@ -42,10 +48,45 @@ const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
   path: '/.well-known/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConnectRoute = AppConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCostsRoute = AppCostsRouteImport.update({
+  id: '/costs',
+  path: '/costs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGalleryRoute = AppGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppModelsRoute = AppModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => AppRoute,
+} as any)
 const FFileRoute = FFileRouteImport.update({
   id: '/f/$file',
   path: '/f/$file',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -54,32 +95,51 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/consent': typeof ConsentRoute
   '/mcp': typeof McpRoute
   '/sign-in': typeof SignInRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
+  '/connect': typeof AppConnectRoute
+  '/costs': typeof AppCostsRoute
+  '/gallery': typeof AppGalleryRoute
+  '/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
+  '/tasks/$taskId': typeof AppTasksTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/consent': typeof ConsentRoute
   '/mcp': typeof McpRoute
   '/sign-in': typeof SignInRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
+  '/connect': typeof AppConnectRoute
+  '/costs': typeof AppCostsRoute
+  '/gallery': typeof AppGalleryRoute
+  '/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
+  '/': typeof AppIndexRoute
+  '/tasks/$taskId': typeof AppTasksTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/tasks': typeof AppTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/consent': typeof ConsentRoute
   '/mcp': typeof McpRoute
   '/sign-in': typeof SignInRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
+  '/_app/connect': typeof AppConnectRoute
+  '/_app/costs': typeof AppCostsRoute
+  '/_app/gallery': typeof AppGalleryRoute
+  '/_app/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/tasks/$taskId': typeof AppTasksTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,30 +149,49 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/sign-in'
     | '/.well-known/$'
+    | '/connect'
+    | '/costs'
+    | '/gallery'
+    | '/models'
     | '/f/$file'
+    | '/tasks/$taskId'
     | '/api/auth/$'
+    | '/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/consent'
     | '/mcp'
     | '/sign-in'
     | '/.well-known/$'
+    | '/connect'
+    | '/costs'
+    | '/gallery'
+    | '/models'
     | '/f/$file'
+    | '/'
+    | '/tasks/$taskId'
     | '/api/auth/$'
+    | '/tasks'
   id:
     | '__root__'
-    | '/'
+    | '/_app'
     | '/consent'
     | '/mcp'
     | '/sign-in'
     | '/.well-known/$'
+    | '/_app/connect'
+    | '/_app/costs'
+    | '/_app/gallery'
+    | '/_app/models'
     | '/f/$file'
+    | '/_app/'
+    | '/_app/tasks/$taskId'
     | '/api/auth/$'
+    | '/_app/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   ConsentRoute: typeof ConsentRoute
   McpRoute: typeof McpRoute
   SignInRoute: typeof SignInRoute
@@ -123,11 +202,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/consent': {
@@ -158,12 +237,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/connect': {
+      id: '/_app/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof AppConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/costs': {
+      id: '/_app/costs'
+      path: '/costs'
+      fullPath: '/costs'
+      preLoaderRoute: typeof AppCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gallery': {
+      id: '/_app/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof AppGalleryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/models': {
+      id: '/_app/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof AppModelsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/f/$file': {
       id: '/f/$file'
       path: '/f/$file'
       fullPath: '/f/$file'
       preLoaderRoute: typeof FFileRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/tasks/': {
+      id: '/_app/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof AppTasksIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks/$taskId': {
+      id: '/_app/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof AppTasksTaskIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -175,8 +303,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppConnectRoute: typeof AppConnectRoute
+  AppCostsRoute: typeof AppCostsRoute
+  AppGalleryRoute: typeof AppGalleryRoute
+  AppModelsRoute: typeof AppModelsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
+  AppTasksIndexRoute: typeof AppTasksIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppConnectRoute: AppConnectRoute,
+  AppCostsRoute: AppCostsRoute,
+  AppGalleryRoute: AppGalleryRoute,
+  AppModelsRoute: AppModelsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppTasksTaskIdRoute: AppTasksTaskIdRoute,
+  AppTasksIndexRoute: AppTasksIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   ConsentRoute: ConsentRoute,
   McpRoute: McpRoute,
   SignInRoute: SignInRoute,

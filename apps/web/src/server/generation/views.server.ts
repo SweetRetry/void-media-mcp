@@ -61,32 +61,41 @@ export type TaskFilter = Range & {
   model?: string
   state?: TaskRow["state"]
   limit?: number
+  offset?: number
 }
 
 /** `%` and `_` in the words are matched literally. */
 const contains = (words: string) => `%${words.replace(/[\\%_]/g, (char) => `\\${char}`)}%`
 
-/** The generation log, newest first, narrowed by prompt words, model and state. */
-export async function listTasks(userId: string, filter: TaskFilter) {
+const matching = (userId: string, filter: TaskFilter) => {
   const query = filter.query?.trim() || undefined
-  return db
+  return and(
+    inRange(userId, filter),
+    filter.state ? eq(generationTask.state, filter.state) : undefined,
+    filter.model ? eq(generationTask.model, filter.model) : undefined,
+    query
+      ? or(
+          sql`${generationTask.prompt} like ${contains(query)} escape '\\'`,
+          eq(generationTask.id, query)
+        )
+      : undefined
+  )
+}
+
+/** The generation log, newest first, narrowed by prompt words, model and state. */
+export const listTasks = (userId: string, filter: TaskFilter) =>
+  db
     .select()
     .from(generationTask)
-    .where(
-      and(
-        inRange(userId, filter),
-        filter.state ? eq(generationTask.state, filter.state) : undefined,
-        filter.model ? eq(generationTask.model, filter.model) : undefined,
-        query
-          ? or(
-              sql`${generationTask.prompt} like ${contains(query)} escape '\\'`,
-              eq(generationTask.id, query)
-            )
-          : undefined
-      )
-    )
+    .where(matching(userId, filter))
     .orderBy(desc(generationTask.createdAt))
     .limit(Math.min(filter.limit ?? 20, 200))
+    .offset(filter.offset ?? 0)
+
+/** How many tasks match, for paging. */
+export async function countTasks(userId: string, filter: TaskFilter) {
+  const [row] = await db.select({ n: count() }).from(generationTask).where(matching(userId, filter))
+  return row?.n ?? 0
 }
 
 const day = sql<string>`strftime('%Y-%m-%d', ${generationTask.createdAt} / 1000, 'unixepoch')`

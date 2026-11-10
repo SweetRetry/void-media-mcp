@@ -1,6 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Spinner } from "@workspace/ui/components/spinner"
+import { CircleAlertIcon } from "lucide-react"
 import { useEffect, useState } from "react"
+import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
 
@@ -9,63 +23,98 @@ import { authClient } from "@/lib/auth-client"
  * signed `oauth_query` in the URL rides along with the consent call through the client plugin.
  */
 export const Route = createFileRoute("/consent")({
+  validateSearch: z.object({
+    client_id: z.string().catch(""),
+    scope: z.string().optional(),
+    redirect_uri: z.string().optional(),
+  }),
   head: () => ({ meta: [{ title: "Authorize a client" }] }),
   component: Consent,
 })
 
-type Client = { client_name?: string; client_uri?: string }
+const hostOf = (uri?: string) => {
+  try {
+    return uri ? new URL(uri).host : null
+  } catch {
+    return null
+  }
+}
 
 function Consent() {
-  const [client, setClient] = useState<Client | null>(null)
-  const [scopes, setScopes] = useState<string[]>([])
-  const [redirectHost, setRedirectHost] = useState("")
-  const [pending, setPending] = useState(false)
+  const search = Route.useSearch()
+  const scopes = (search.scope ?? "").split(" ").filter(Boolean)
+  const [name, setName] = useState<string | null | undefined>(undefined)
+  const [pending, setPending] = useState<"allow" | "deny" | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const query = new URLSearchParams(window.location.search)
-    const clientId = query.get("client_id") ?? ""
-    setScopes((query.get("scope") ?? "").split(" ").filter(Boolean))
-    try {
-      setRedirectHost(new URL(query.get("redirect_uri") ?? "").host)
-    } catch {
-      setRedirectHost("")
-    }
     void authClient.oauth2
-      .publicClient({ query: { client_id: clientId } })
-      .then((result) => setClient((result.data as Client | null) ?? {}))
-  }, [])
+      .publicClient({ query: { client_id: search.client_id } })
+      .then((result) =>
+        setName((result.data as { client_name?: string } | null)?.client_name ?? null)
+      )
+  }, [search.client_id])
 
   async function answer(accept: boolean) {
-    setPending(true)
+    setPending(accept ? "allow" : "deny")
     const result = await authClient.oauth2.consent({ accept })
-    setPending(false)
-    if (result.error) setError(result.error.message ?? "That did not go through.")
+    if (result.error) {
+      setPending(null)
+      setError(result.error.message ?? "That did not go through.")
+    }
   }
 
-  const name = client?.client_name || "An MCP client"
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center px-4">
-      <h1 className="text-2xl font-semibold">Authorize {name}?</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        It will be able to generate images, video and audio on your provider accounts, which costs
-        money, and read your usage log and cost report.
-      </p>
-      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Returns to</dt>
-        <dd className="font-mono">{redirectHost || "unknown"}</dd>
-        <dt className="text-muted-foreground">Scopes</dt>
-        <dd className="font-mono">{scopes.join(" ") || "default"}</dd>
-      </dl>
-      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-      <div className="mt-6 flex gap-2">
-        <Button onClick={() => answer(true)} disabled={pending}>
-          Allow
-        </Button>
-        <Button variant="secondary" onClick={() => answer(false)} disabled={pending}>
-          Deny
-        </Button>
-      </div>
+    <main className="flex min-h-svh items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>
+            {name === undefined ? (
+              <Skeleton className="h-5 w-48" />
+            ) : (
+              `Authorize ${name ?? "this client"}?`
+            )}
+          </CardTitle>
+          <CardDescription>
+            It will generate images, video and audio on your provider accounts, which costs money,
+            and read your generation log and costs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Returns to</dt>
+            <dd className="font-mono">{hostOf(search.redirect_uri) ?? "unknown"}</dd>
+            <dt className="text-muted-foreground">Scopes</dt>
+            <dd className="flex flex-wrap gap-1">
+              {scopes.length ? (
+                scopes.map((scope) => (
+                  <Badge key={scope} variant="outline">
+                    {scope}
+                  </Badge>
+                ))
+              ) : (
+                <span>default</span>
+              )}
+            </dd>
+          </dl>
+          {error && (
+            <Alert variant="destructive">
+              <CircleAlertIcon />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+        <CardFooter className="gap-2">
+          <Button onClick={() => answer(true)} disabled={pending !== null}>
+            {pending === "allow" && <Spinner data-icon="inline-start" />}
+            Allow
+          </Button>
+          <Button variant="secondary" onClick={() => answer(false)} disabled={pending !== null}>
+            {pending === "deny" && <Spinner data-icon="inline-start" />}
+            Deny
+          </Button>
+        </CardFooter>
+      </Card>
     </main>
   )
 }

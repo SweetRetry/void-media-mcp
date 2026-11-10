@@ -51,7 +51,7 @@ shadcn names, so every color is a utility (`bg-card`, `text-muted-foreground`). 
 - **Text**: `text-foreground` to read, `text-muted-foreground` to support, `text-subtle-foreground` only for placeholders, timestamps and column headers on background, surface-1 or sidebar. Never set text hierarchy with opacity (a transient state such as stale data while reloading may fade).
 - **Emerald (`primary`) is scarce**: one primary button per view, links, checked controls, focus, success. Under 5% of the screen; never decoration, never "good" numbers.
 - **Status** (`success`, `warning`, `destructive`) always comes with a word; notices use the `*-soft` fills.
-- `accent` is shadcn's neutral hover, not a brand color. Charts: `chart-1` for the series that matters, `chart-5` for the rest.
+- `accent` is shadcn's neutral hover, not a brand color. Charts: `chart-1` for the series that matters, `chart-5` for the rest. The pair is validated per mode (dataviz `validate_palette.js`: lightness band, CVD and normal-vision separation, 3:1 on `card`); re-run it before changing either.
 
 ## Typography
 

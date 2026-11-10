@@ -1,5 +1,7 @@
+import { oauthClient } from "@db/schema"
 import env from "@env"
 import { createLocalJWKSet, type JSONWebKeySet, type JWTPayload, jwtVerify } from "jose"
+import { db, eq } from "void/db"
 
 import { getAuth, mcpResource } from "./auth.server"
 
@@ -43,5 +45,11 @@ export async function withMcpAuth(
       error instanceof Error ? error.message.replaceAll('"', "'") : "invalid token"
     )
   }
+  // A revoked client's JWTs stay valid until they expire, so revocation is checked here.
+  const [client] = await db
+    .select({ disabled: oauthClient.disabled })
+    .from(oauthClient)
+    .where(eq(oauthClient.clientId, String(claims.azp)))
+  if (!client || client.disabled) return unauthorized("client revoked")
   return handler(claims)
 }
