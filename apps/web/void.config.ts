@@ -12,6 +12,8 @@ export default defineConfig({
     name: "void-media-mcp",
     workers_dev: true,
     preview_urls: true,
+    // Scales image outputs down for `view_output`. Local dev runs it offline on sharp.
+    images: { binding: "IMAGES" },
     observability: {
       enabled: true,
       logs: { enabled: true, invocation_logs: true },

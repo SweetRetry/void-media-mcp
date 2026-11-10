@@ -4,6 +4,9 @@
     "name": "void-media-mcp",
     "workers_dev": true,
     "preview_urls": true,
+    "images": {
+      "binding": "IMAGES"
+    },
     "observability": {
       "enabled": true,
       "logs": {
@@ -44,7 +47,10 @@
         "binding": "STORAGE",
         "bucket_name": "void-media-mcp-storage"
       }
-    ]
+    ],
+    "images": {
+      "binding": "IMAGES"
+    }
   },
-  "text": "{\n  \"name\": \"void-media-mcp\",\n  \"workers_dev\": true,\n  \"preview_urls\": true,\n  \"observability\": {\n    \"enabled\": true,\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    },\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"account_id\": \"90a12c280141642fdd6f87f71f71ff64\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"void-media-mcp-db\",\n      \"database_id\": \"b183dc62-4858-47ef-89dc-a350699edb15\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"r2_buckets\": [\n    {\n      \"binding\": \"STORAGE\",\n      \"bucket_name\": \"void-media-mcp-storage\"\n    }\n  ]\n}\n"
+  "text": "{\n  \"name\": \"void-media-mcp\",\n  \"workers_dev\": true,\n  \"preview_urls\": true,\n  \"observability\": {\n    \"enabled\": true,\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    },\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"account_id\": \"90a12c280141642fdd6f87f71f71ff64\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"void-media-mcp-db\",\n      \"database_id\": \"b183dc62-4858-47ef-89dc-a350699edb15\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"r2_buckets\": [\n    {\n      \"binding\": \"STORAGE\",\n      \"bucket_name\": \"void-media-mcp-storage\"\n    }\n  ],\n  \"images\": {\n    \"binding\": \"IMAGES\"\n  }\n}\n"
 }

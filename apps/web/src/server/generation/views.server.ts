@@ -1,7 +1,7 @@
 import { generationTask } from "@db/schema"
 import { and, count, db, desc, eq, gte, lt, or, sql, sum } from "void/db"
 
-import { runsOf } from "./runs.server"
+import { runsOf, storedOf } from "./runs.server"
 import type { TaskRow } from "./tasks.server"
 
 const EXT: Record<string, string> = {
@@ -15,18 +15,14 @@ const EXT: Record<string, string> = {
 /** A task as the MCP tools and the web page show it. Output URLs are public capability links. */
 export function taskView(task: TaskRow, origin: string) {
   const runs = runsOf(task.providerRef)
-  const outputs = runs.flatMap((run) =>
-    "stored" in run
-      ? run.stored.map((file) => ({
-          url: `${origin}/f/${file.id}.${EXT[file.mime] ?? "bin"}`,
-          mime: file.mime,
-          bytes: file.bytes,
-          width: file.width,
-          height: file.height,
-          durationMs: file.durationMs,
-        }))
-      : []
-  )
+  const outputs = storedOf(task.providerRef).map((file) => ({
+    url: `${origin}/f/${file.id}.${EXT[file.mime] ?? "bin"}`,
+    mime: file.mime,
+    bytes: file.bytes,
+    width: file.width,
+    height: file.height,
+    durationMs: file.durationMs,
+  }))
   return {
     id: task.id,
     state: task.state,

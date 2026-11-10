@@ -28,6 +28,10 @@ export type Run =
 export const runsOf = (providerRef: string | null): Run[] =>
   providerRef ? (JSON.parse(providerRef) as Run[]) : []
 
+/** Every file a task's runs delivered, in run order. */
+export const storedOf = (providerRef: string | null) =>
+  runsOf(providerRef).flatMap((run) => ("stored" in run ? run.stored : []))
+
 export const outputKey = (id: string) => `o/${id}`
 
 const randomId = () =>

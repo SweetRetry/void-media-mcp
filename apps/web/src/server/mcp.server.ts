@@ -3,6 +3,8 @@ import { McpServer } from "@modelcontextprotocol/server"
 import env from "@env"
 import { z } from "zod"
 
+import { previewOf } from "./generation/preview.server"
+import { storedOf } from "./generation/runs.server"
 import { advanceTask, submitTask, taskOf } from "./generation/tasks.server"
 import { costReport, listTasks, taskView, type TaskView } from "./generation/views.server"
 
@@ -169,6 +171,58 @@ export function mcpServer(caller: Caller) {
       await advanceTask(task_id)
       const task = (await waitFor(task_id, wait_seconds)) ?? found
       return taskResult(taskView(task, origin))
+    }
+  )
+
+  server.registerTool(
+    "view_output",
+    {
+      title: "View output",
+      description: [
+        "Look at a task's generated images, scaled to fit 1024px, to judge them before refining",
+        "the prompt. index (1-based, as in the output names) picks one image; without it, all of",
+        "them. Video and audio can't be viewed; open their URLs instead.",
+      ].join(" "),
+      inputSchema: z.object({
+        task_id: z.string(),
+        index: z.number().int().min(1).optional(),
+      }),
+      annotations: { readOnlyHint: true },
+    },
+    async ({ task_id, index }) => {
+      const task = await taskOf(task_id)
+      if (!task || task.userId !== caller.userId) return refused("No such task.")
+      const files = storedOf(task.providerRef)
+      const urls = taskView(task, origin).outputs.map((output) => output.url)
+      const picked = files
+        .map((file, i) => ({ ...file, n: i + 1, url: urls[i] }))
+        .filter((file) => index === undefined || file.n === index)
+      if (picked.length === 0)
+        return refused(
+          files.length === 0
+            ? `The task has no outputs yet (${task.state}).`
+            : `The task has ${files.length} outputs; index ${index} is out of range.`
+        )
+      const images = picked.filter((file) => file.mime.startsWith("image/"))
+      if (images.length === 0)
+        return refused(`These outputs are ${picked[0]?.mime}, not images. Open their URLs instead.`)
+      try {
+        const previews = await Promise.all(images.map((file) => previewOf(file.id)))
+        return {
+          content: images.flatMap((file, i) => {
+            const preview = previews[i]
+            const label = `${task.modality}-${file.n}: ${file.url} (${file.width ?? "?"}x${file.height ?? "?"})`
+            return preview
+              ? [
+                  { type: "text" as const, text: label },
+                  { type: "image" as const, data: preview.data, mimeType: preview.mimeType },
+                ]
+              : [{ type: "text" as const, text: `${label} is missing from storage.` }]
+          }),
+        }
+      } catch (error) {
+        return refused(`Could not render a preview: ${(error as Error).message}`)
+      }
     }
   )
 
