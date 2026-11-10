@@ -13,14 +13,14 @@ import { Fragment, type ReactNode } from "react"
 
 type Crumb = { label: string; to?: string }
 
-/** The bar above every admin page: the sidebar toggle, where you are, and the page's actions. */
+/** The bar above every admin page: the sidebar button on a phone, where you are, and the page's actions. */
 export function PageHeader({ crumbs, actions }: { crumbs: Crumb[]; actions?: ReactNode }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger />
+      <SidebarTrigger className="md:hidden" />
       <Separator
         orientation="vertical"
-        className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+        className="mr-2 data-vertical:h-4 data-vertical:self-auto md:hidden"
       />
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList>

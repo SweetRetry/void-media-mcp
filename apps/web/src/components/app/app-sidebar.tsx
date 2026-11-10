@@ -16,13 +16,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
+  useSidebar,
 } from "@workspace/ui/components/sidebar"
 import {
   BoxesIcon,
   ChevronsUpDownIcon,
-  ImagesIcon,
-  LayoutDashboardIcon,
   ListIcon,
   LogOutIcon,
   PlugIcon,
@@ -36,9 +34,7 @@ const SECTIONS = [
   {
     label: "Activity",
     items: [
-      { to: "/", label: "Overview", icon: LayoutDashboardIcon, exact: true },
       { to: "/tasks", label: "Generations", icon: ListIcon },
-      { to: "/gallery", label: "Gallery", icon: ImagesIcon },
       { to: "/costs", label: "Costs", icon: ReceiptIcon },
     ],
   },
@@ -54,12 +50,17 @@ const SECTIONS = [
 export function AppSidebar({ email }: { email: string }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
   const navigate = useNavigate()
+  // On a phone the sidebar is a drawer; picking a page closes it.
+  const { setOpenMobile } = useSidebar()
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link to="/" />}>
+            <SidebarMenuButton
+              size="lg"
+              render={<Link to="/tasks" onClick={() => setOpenMobile(false)} />}
+            >
               <SparklesIcon />
               <span className="font-semibold">Void Media</span>
             </SidebarMenuButton>
@@ -73,13 +74,12 @@ export function AppSidebar({ email }: { email: string }) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
-                  const active = "exact" in item ? path === item.to : path.startsWith(item.to)
+                  const active = path.startsWith(item.to)
                   return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton
                         isActive={active}
-                        tooltip={item.label}
-                        render={<Link to={item.to} />}
+                        render={<Link to={item.to} onClick={() => setOpenMobile(false)} />}
                       >
                         <item.icon />
                         <span>{item.label}</span>
@@ -115,7 +115,6 @@ export function AppSidebar({ email }: { email: string }) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }

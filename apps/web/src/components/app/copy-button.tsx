@@ -4,12 +4,20 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 /** Copies `text` and confirms in place for a moment. */
-export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+export function CopyButton({
+  text,
+  label = "Copy",
+  size = "icon-sm",
+}: {
+  text: string
+  label?: string
+  size?: "icon-sm" | "icon"
+}) {
   const [copied, setCopied] = useState(false)
   return (
     <Button
       variant="ghost"
-      size="icon-sm"
+      size={size}
       aria-label={label}
       onClick={async () => {
         try {

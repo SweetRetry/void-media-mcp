@@ -1,3 +1,5 @@
+import { modelOf } from "@workspace/model-providers"
+
 /** Dollars at list price. Sub-dollar amounts keep four places, since one image costs cents. */
 export const usd = (value: number | null | undefined) =>
   value === null || value === undefined
@@ -43,3 +45,6 @@ export const dateTime = (iso: string, timeZone?: string) =>
   new Date(iso).toLocaleString(LOCALE, { timeZone, timeZoneName: timeZone ? "short" : undefined })
 
 export const runs = (n: number) => `${n} ${n === 1 ? "run" : "runs"}`
+
+/** A model's display name from the catalog; an id that left the catalog shows as itself. */
+export const modelName = (id: string) => modelOf(id)?.name ?? id

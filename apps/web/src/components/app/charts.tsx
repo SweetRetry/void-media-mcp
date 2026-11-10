@@ -6,8 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@workspace/ui/components/chart"
-import type { CSSProperties } from "react"
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { daysOf, LOCALE, usd } from "@/lib/format"
 
@@ -65,7 +64,7 @@ export function SpendChart({
           tickLine={false}
           axisLine={false}
           width={56}
-          tickFormatter={(value: number) => usd(value)}
+          tickFormatter={(value: number) => `$${value.toFixed(2)}`}
         />
         <ChartTooltip
           cursor={false}
@@ -86,62 +85,6 @@ export function SpendChart({
         {compare && <ChartLegend content={<ChartLegendContent />} />}
         {compare && <Bar dataKey="quoted" fill="var(--color-quoted)" radius={4} />}
         <Bar dataKey="cost" fill="var(--color-cost)" radius={4} />
-      </BarChart>
-    </ChartContainer>
-  )
-}
-
-const modelConfig = { cost: { label: "Delivered", color: "var(--chart-1)" } } satisfies ChartConfig
-
-/** Spend per model, largest first, on one baseline: ranked bars compare more exactly than a pie. */
-export function ModelSpendChart({ rows }: { rows: { model: string; costUsd: number | null }[] }) {
-  const data = rows
-    .map((row) => ({ model: row.model, cost: row.costUsd ?? 0 }))
-    .sort((a, b) => b.cost - a.cost)
-    .slice(0, 8)
-  // Each name sits above its bar, so a long model id never competes with the bars for width.
-  return (
-    <ChartContainer
-      config={modelConfig}
-      className="aspect-auto h-[calc(var(--rows)*44px+8px)] w-full"
-      style={{ "--rows": data.length } as CSSProperties}
-    >
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 16, right: 64, left: 0 }}
-        barCategoryGap={14}
-        accessibilityLayer
-      >
-        <XAxis type="number" hide />
-        <YAxis type="category" dataKey="model" hide />
-        <ChartTooltip
-          cursor={false}
-          content={
-            <ChartTooltipContent
-              hideIndicator
-              formatter={(value) => (
-                <span className="font-mono tabular-nums">{usd(Number(value))}</span>
-              )}
-            />
-          }
-        />
-        <Bar dataKey="cost" fill="var(--color-cost)" radius={4} minPointSize={2}>
-          <LabelList
-            dataKey="model"
-            content={({ x, y, value }) => (
-              <text x={Number(x)} y={Number(y) - 6} className="fill-muted-foreground text-xs">
-                {String(value)}
-              </text>
-            )}
-          />
-          <LabelList
-            dataKey="cost"
-            position="right"
-            className="fill-foreground"
-            formatter={(value: unknown) => usd(Number(value))}
-          />
-        </Bar>
       </BarChart>
     </ChartContainer>
   )

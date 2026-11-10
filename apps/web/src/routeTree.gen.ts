@@ -17,7 +17,6 @@ import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConnectRouteImport } from './routes/_app/connect'
 import { Route as AppCostsRouteImport } from './routes/_app/costs'
-import { Route as AppGalleryRouteImport } from './routes/_app/gallery'
 import { Route as AppModelsRouteImport } from './routes/_app/models'
 import { Route as FFileRouteImport } from './routes/f/$file'
 import { Route as AppTasksIndexRouteImport } from './routes/_app/tasks/index'
@@ -63,11 +62,6 @@ const AppCostsRoute = AppCostsRouteImport.update({
   path: '/costs',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGalleryRoute = AppGalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppModelsRoute = AppModelsRouteImport.update({
   id: '/models',
   path: '/models',
@@ -102,7 +96,6 @@ export interface FileRoutesByFullPath {
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/connect': typeof AppConnectRoute
   '/costs': typeof AppCostsRoute
-  '/gallery': typeof AppGalleryRoute
   '/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
   '/tasks/$taskId': typeof AppTasksTaskIdRoute
@@ -116,7 +109,6 @@ export interface FileRoutesByTo {
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/connect': typeof AppConnectRoute
   '/costs': typeof AppCostsRoute
-  '/gallery': typeof AppGalleryRoute
   '/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
   '/': typeof AppIndexRoute
@@ -133,7 +125,6 @@ export interface FileRoutesById {
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/_app/connect': typeof AppConnectRoute
   '/_app/costs': typeof AppCostsRoute
-  '/_app/gallery': typeof AppGalleryRoute
   '/_app/models': typeof AppModelsRoute
   '/f/$file': typeof FFileRoute
   '/_app/': typeof AppIndexRoute
@@ -151,7 +142,6 @@ export interface FileRouteTypes {
     | '/.well-known/$'
     | '/connect'
     | '/costs'
-    | '/gallery'
     | '/models'
     | '/f/$file'
     | '/tasks/$taskId'
@@ -165,7 +155,6 @@ export interface FileRouteTypes {
     | '/.well-known/$'
     | '/connect'
     | '/costs'
-    | '/gallery'
     | '/models'
     | '/f/$file'
     | '/'
@@ -181,7 +170,6 @@ export interface FileRouteTypes {
     | '/.well-known/$'
     | '/_app/connect'
     | '/_app/costs'
-    | '/_app/gallery'
     | '/_app/models'
     | '/f/$file'
     | '/_app/'
@@ -258,13 +246,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCostsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gallery': {
-      id: '/_app/gallery'
-      path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof AppGalleryRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/models': {
       id: '/_app/models'
       path: '/models'
@@ -306,7 +287,6 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRoute
   AppCostsRoute: typeof AppCostsRoute
-  AppGalleryRoute: typeof AppGalleryRoute
   AppModelsRoute: typeof AppModelsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
@@ -316,7 +296,6 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppConnectRoute: AppConnectRoute,
   AppCostsRoute: AppCostsRoute,
-  AppGalleryRoute: AppGalleryRoute,
   AppModelsRoute: AppModelsRoute,
   AppIndexRoute: AppIndexRoute,
   AppTasksTaskIdRoute: AppTasksTaskIdRoute,

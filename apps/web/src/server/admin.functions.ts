@@ -1,9 +1,15 @@
-import { generationTask, oauthClient, oauthConsent, oauthRefreshToken } from "@db/schema"
+import {
+  TASK_STATES,
+  generationTask,
+  oauthClient,
+  oauthConsent,
+  oauthRefreshToken,
+} from "@db/schema"
 import type { Price } from "@workspace/model-providers"
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import env from "@env"
-import { and, db, desc, eq, inArray, isNull, max, sql } from "void/db"
+import { and, db, desc, eq, isNull, max, sql } from "void/db"
 import { z } from "zod"
 
 import { getAuth } from "./auth/auth.server"
@@ -17,7 +23,6 @@ import { costReport, countTasks, listTasks, taskView } from "./generation/views.
  */
 
 const OPEN = new Set(["queued", "running", "confirming"])
-const STATES = ["queued", "running", "confirming", "succeeded", "partial", "failed"] as const
 const days = z.number().int().min(1).max(366)
 const sinceOf = (n: number) => new Date(Date.now() - n * 86_400_000)
 const view = (row: Parameters<typeof taskView>[0]) => taskView(row, env.BETTER_AUTH_URL)
@@ -35,19 +40,6 @@ export const currentUser = createServerFn().handler(async () => {
   return session ? { id: session.user.id, email: session.user.email } : null
 })
 
-export const overview = createServerFn()
-  .middleware([signedIn])
-  .validator(z.object({ days }))
-  .handler(async ({ context, data }) => {
-    const filter = { since: sinceOf(data.days), limit: 6 }
-    let recent = await listTasks(context.user.id, filter)
-    if (await refresh(recent)) recent = await listTasks(context.user.id, filter)
-    return {
-      report: await costReport(context.user.id, { since: filter.since }),
-      recent: recent.map(view),
-    }
-  })
-
 const PAGE = 25
 
 export const tasksPage = createServerFn()
@@ -56,7 +48,7 @@ export const tasksPage = createServerFn()
     z.object({
       q: z.string().max(200).optional(),
       model: z.string().max(100).optional(),
-      state: z.enum(STATES).optional(),
+      state: z.enum(TASK_STATES).optional(),
       page: z.number().int().min(1).max(10_000),
     })
   )
@@ -99,40 +91,6 @@ export const taskDetail = createServerFn()
           .where(eq(oauthClient.clientId, task.clientId))
       : []
     return { task: view(task), price: task.price as Price | null, clientName: client?.name ?? null }
-  })
-
-export const galleryPage = createServerFn()
-  .middleware([signedIn])
-  .validator(
-    z.object({
-      modality: z.enum(["image", "video", "audio"]).optional(),
-      page: z.number().int().min(1).max(10_000),
-    })
-  )
-  .handler(async ({ context, data }) => {
-    const rows = await db
-      .select()
-      .from(generationTask)
-      .where(
-        and(
-          eq(generationTask.userId, context.user.id),
-          inArray(generationTask.state, ["succeeded", "partial"]),
-          data.modality ? eq(generationTask.modality, data.modality) : undefined
-        )
-      )
-      .orderBy(desc(generationTask.createdAt))
-      .limit(PAGE + 1)
-      .offset((data.page - 1) * PAGE)
-    const items = rows.slice(0, PAGE).flatMap((row) => {
-      const task = view(row)
-      return task.outputs.map((output) => ({
-        ...output,
-        taskId: task.id,
-        prompt: task.prompt,
-        model: task.model,
-      }))
-    })
-    return { items, hasMore: rows.length > PAGE }
   })
 
 export const costsPage = createServerFn()

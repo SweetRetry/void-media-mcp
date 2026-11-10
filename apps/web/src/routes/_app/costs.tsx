@@ -1,12 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import {
   Table,
   TableBody,
   TableCell,
@@ -21,8 +14,7 @@ import { z } from "zod"
 import { dailySeries, SpendChart } from "@/components/app/charts"
 import { PageHeader } from "@/components/app/page-header"
 import { RangePicker } from "@/components/app/range-picker"
-import { Stat } from "@/components/app/stat"
-import { runs, usd } from "@/lib/format"
+import { modelName, runs, usd } from "@/lib/format"
 import { costsPage } from "@/server/admin.functions"
 
 export const Route = createFileRoute("/_app/costs")({
@@ -49,39 +41,36 @@ function Costs() {
           <RangePicker days={days} onChange={(next) => navigate({ search: { days: next } })} />
         }
       />
-      <div className="flex flex-col gap-4 p-4">
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat
-            label="Delivered"
-            value={usd(totals?.costUsd ?? 0)}
-            hint="What delivered runs cost"
-          />
-          <Stat
-            label="Quoted"
-            value={usd(totals?.quotedUsd ?? 0)}
-            hint={`${usd(drift)} not delivered`}
-          />
-          <Stat
-            label="Unpriced"
-            value={String(totals?.unpricedTasks ?? 0)}
-            hint="Generations with no published price"
-          />
-          <Stat
-            label="Possibly billed"
-            value={runs(totals?.possiblyBilledRuns ?? 0)}
-            hint="Check these against the provider's bill"
-          />
+      <div className="flex flex-col gap-8 p-4 lg:p-6">
+        <section className="flex flex-wrap items-end gap-x-12 gap-y-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-sm text-muted-foreground">Delivered</h2>
+            <p className="text-3xl font-semibold tabular-nums">{usd(totals?.costUsd ?? 0)}</p>
+            <p className="text-xs text-muted-foreground">{report.basis}</p>
+          </div>
+          <dl className="grid grid-cols-[auto_auto] gap-x-6 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Quoted</dt>
+            <dd className="text-right tabular-nums">{usd(totals?.quotedUsd ?? 0)}</dd>
+            <dt className="text-muted-foreground">Not delivered</dt>
+            <dd className="text-right tabular-nums">{usd(drift)}</dd>
+            {(totals?.possiblyBilledRuns ?? 0) > 0 && (
+              <>
+                <dt className="text-muted-foreground">Possibly billed</dt>
+                <dd className="text-right text-warning tabular-nums">
+                  {runs(totals?.possiblyBilledRuns ?? 0)}
+                </dd>
+              </>
+            )}
+            {(totals?.unpricedTasks ?? 0) > 0 && (
+              <>
+                <dt className="text-muted-foreground">Unpriced</dt>
+                <dd className="text-right tabular-nums">{totals?.unpricedTasks}</dd>
+              </>
+            )}
+          </dl>
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quoted and delivered, per day</CardTitle>
-            <CardDescription>{report.basis}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SpendChart data={series} compare />
-          </CardContent>
-        </Card>
+        <SpendChart data={series} compare />
 
         <Tabs defaultValue="model">
           <TabsList>
@@ -103,7 +92,7 @@ function Costs() {
               <TableBody>
                 {report.byModel.map((row) => (
                   <TableRow key={row.model}>
-                    <TableCell className="font-mono text-xs">{row.model}</TableCell>
+                    <TableCell>{modelName(row.model)}</TableCell>
                     <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
                     <TableCell className="text-right tabular-nums">{row.failed}</TableCell>
                     <TableCell className="text-right tabular-nums">

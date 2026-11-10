@@ -19,7 +19,8 @@ function AppLayout() {
   const { user } = Route.useRouteContext()
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      {/* Always open on desktop; on a phone the sidebar is a drawer behind the header button. */}
+      <SidebarProvider open onOpenChange={() => {}}>
         <AppSidebar email={user.email} />
         <SidebarInset>
           <Outlet />
