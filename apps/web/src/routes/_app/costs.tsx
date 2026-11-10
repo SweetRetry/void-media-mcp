@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { z } from "zod"
 
-import { dailySeries, SpendChart } from "@/components/app/charts"
+import { dailySeries, ModelSpendChart, SpendChart } from "@/components/app/charts"
 import { PageHeader } from "@/components/app/page-header"
 import { RangePicker } from "@/components/app/range-picker"
 import { modelName, runs, usd } from "@/lib/format"
@@ -70,14 +70,37 @@ function Costs() {
           </dl>
         </section>
 
-        <SpendChart data={series} compare />
-
-        <Tabs defaultValue="model">
+        {/* Each view is a chart and the table of the same numbers under it. */}
+        <Tabs defaultValue="day">
           <TabsList>
-            <TabsTrigger value="model">By model</TabsTrigger>
             <TabsTrigger value="day">By day</TabsTrigger>
+            <TabsTrigger value="model">By model</TabsTrigger>
           </TabsList>
-          <TabsContent value="model">
+          <TabsContent value="day" className="flex flex-col gap-6">
+            <SpendChart data={series} compare />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Day (UTC)</TableHead>
+                  <TableHead className="text-right">Generations</TableHead>
+                  <TableHead className="text-right">Quoted</TableHead>
+                  <TableHead className="text-right">Delivered</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...series].reverse().map((row) => (
+                  <TableRow key={row.day}>
+                    <TableCell>{row.day}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
+                    <TableCell className="text-right tabular-nums">{usd(row.quoted)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{usd(row.cost)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TabsContent>
+          <TabsContent value="model" className="flex flex-col gap-6">
+            {report.byModel.length > 0 && <ModelSpendChart rows={report.byModel} />}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -119,28 +142,6 @@ function Costs() {
                   </TableCell>
                 </TableRow>
               </TableFooter>
-            </Table>
-          </TabsContent>
-          <TabsContent value="day">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Day (UTC)</TableHead>
-                  <TableHead className="text-right">Generations</TableHead>
-                  <TableHead className="text-right">Quoted</TableHead>
-                  <TableHead className="text-right">Delivered</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...series].reverse().map((row) => (
-                  <TableRow key={row.day}>
-                    <TableCell>{row.day}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.quoted)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.cost)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
             </Table>
           </TabsContent>
         </Tabs>
