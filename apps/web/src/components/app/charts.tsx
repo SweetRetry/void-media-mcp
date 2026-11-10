@@ -36,6 +36,10 @@ const shortDay = (day: string) =>
     timeZone: "UTC",
   })
 
+/** Axis dollars: cents above $1, two significant digits below, so small ranges never repeat a tick. */
+const tick = (value: number) =>
+  value === 0 || value >= 1 ? `$${value.toFixed(2)}` : `$${Number(value.toPrecision(2))}`
+
 const spendConfig = {
   cost: { label: "Delivered", color: "var(--chart-1)" },
   quoted: { label: "Quoted", color: "var(--chart-5)" },
@@ -61,12 +65,7 @@ export function SpendChart({
           minTickGap={24}
           tickFormatter={shortDay}
         />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          width={56}
-          tickFormatter={(value: number) => `$${value.toFixed(2)}`}
-        />
+        <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={tick} />
         <ChartTooltip
           cursor={false}
           content={

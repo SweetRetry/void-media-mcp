@@ -10,18 +10,16 @@ export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
     const user = await currentUser()
     if (!user) throw redirect({ to: "/sign-in" })
-    return { user }
   },
   component: AppLayout,
 })
 
 function AppLayout() {
-  const { user } = Route.useRouteContext()
   return (
     <TooltipProvider>
       {/* Always open on desktop; on a phone the sidebar is a drawer behind the header button. */}
       <SidebarProvider open onOpenChange={() => {}}>
-        <AppSidebar email={user.email} />
+        <AppSidebar />
         <SidebarInset>
           <Outlet />
         </SidebarInset>

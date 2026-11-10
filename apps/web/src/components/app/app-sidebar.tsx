@@ -1,11 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu"
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -18,15 +12,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
-import {
-  BoxesIcon,
-  ChevronsUpDownIcon,
-  ListIcon,
-  LogOutIcon,
-  PlugIcon,
-  ReceiptIcon,
-  SparklesIcon,
-} from "lucide-react"
+import { BoxesIcon, ListIcon, LogOutIcon, PlugIcon, ReceiptIcon, SparklesIcon } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 
@@ -47,7 +33,7 @@ const SECTIONS = [
   },
 ] as const
 
-export function AppSidebar({ email }: { email: string }) {
+export function AppSidebar() {
   const path = useRouterState({ select: (state) => state.location.pathname })
   const navigate = useNavigate()
   // On a phone the sidebar is a drawer; picking a page closes it.
@@ -95,23 +81,15 @@ export function AppSidebar({ email }: { email: string }) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-                <span className="truncate">{email}</span>
-                <ChevronsUpDownIcon className="ml-auto" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start">
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await authClient.signOut()
-                    await navigate({ to: "/sign-in" })
-                  }}
-                >
-                  <LogOutIcon />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SidebarMenuButton
+              onClick={async () => {
+                await authClient.signOut()
+                await navigate({ to: "/sign-in" })
+              }}
+            >
+              <LogOutIcon />
+              <span>Sign out</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
