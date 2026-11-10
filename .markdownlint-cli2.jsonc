@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/main/schema/markdownlint-cli2-config-schema.json",
+  // Markdown gates: Oxfmt (`vp fmt`, see vite.config.ts › fmt) owns the shape of a
+  // document — list bullets, list indent, blank lines around blocks, table padding,
+  // thematic breaks, trailing whitespace. markdownlint only adds the structural rules
+  // Oxfmt has no opinion on, such as fence languages, heading structure and links.
+  // Keep it that way: a rule that overlaps Oxfmt's output causes churn between the two.
+  "gitignore": true,
+  "globs": ["**/*.md"],
+  // Skills copied from their sources (pnpm skills:check) are not ours to lint.
+  // Our own skills under .agents/skills are.
+  "ignores": [".agents/skills/void/**", ".agents/skills/sweet-mode/**"],
+  "config": {
+    // Prose stays unwrapped. These docs are CJK paragraphs and wide tables; Oxfmt
+    // preserves the author's line breaks, so a length limit would only force manual
+    // re-wrapping with no reader benefit.
+    "MD013": false,
+    // A repeated heading is worth flagging inside one section, not document-wide.
+    "MD024": { "siblings_only": true },
+  },
+}

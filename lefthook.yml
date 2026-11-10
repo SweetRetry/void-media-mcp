@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://json.schemastore.org/lefthook.json
+#
+# Git hooks move the fast parts of `pnpm verify` onto the developer's machine.
+# `pnpm verify` stays the full gate (AGENTS.md › Verification); hooks are a subset and do not replace CI.
+pre-commit:
+  parallel: true
+  jobs:
+    # Format staged files and re-stage the result.
+    - name: format
+      glob: "*.{ts,tsx,js,jsx,json,jsonc,css,yml,yaml}"
+      run: pnpm exec vp fmt --write --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+
+    # Markdown belongs to one job so the two writers never race on the same file:
+    # Oxfmt shapes the document, markdownlint adds the structural rules (see
+    # .markdownlint-cli2.jsonc). `--no-globs` keeps the fix on the staged files;
+    # without it the config globs pull in every other document in the repo.
+    - name: markdown
+      glob: "*.md"
+      run: pnpm exec vp fmt --write --no-error-on-unmatched-pattern {staged_files} && pnpm exec markdownlint-cli2 --no-globs --fix {staged_files}
+      stage_fixed: true
+
+    # Mechanical gates with no room for judgment: deprecated Zod APIs, className lexicon, UI freeze baseline.
+    - name: rules
+      run: pnpm rules:check
+
+pre-push:
+  parallel: true
+  jobs:
+    # Types and tests catch what lint cannot; build and knip stay in `pnpm verify` and CI.
+    - name: typecheck
+      run: pnpm typecheck
+
+    - name: test
+      run: pnpm test

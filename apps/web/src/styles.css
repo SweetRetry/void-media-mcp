@@ -1,0 +1,23 @@
+@import "@workspace/ui/globals.css";
+
+/* Streamdown renders Markdown with its own utility classes. */
+@source "../node_modules/streamdown/dist/*.js";
+
+/* Retry › Quiet craft: text links draw their underline in from the left on hover and
+   out to the right, and stay still under reduced motion. */
+@utility link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 100% 100%;
+  background-size: 0% 1px;
+  transition: background-size 200ms var(--ease-out);
+
+  &:hover {
+    background-position: 0% 100%;
+    background-size: 100% 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

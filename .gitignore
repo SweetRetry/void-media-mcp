@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Build and tool output
+dist
+coverage
+.verification
+.turbo
+.tanstack
+.void
+.wrangler
+.cloudflare
+.void-wrangler.jsonc
+*.tsbuildinfo
+
+# Lefthook local overrides
+lefthook-local.yml
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+.admin-credentials

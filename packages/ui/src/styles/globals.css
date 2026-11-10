@@ -1,0 +1,8 @@
+/* Retry tokens and base styles live in retry.css (DESIGN.md is their spec).
+   This file only adds what shadcn/ui needs on top and tells Tailwind where classes live. */
+@import "./retry.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@source "../../../../apps/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";

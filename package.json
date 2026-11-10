@@ -1,0 +1,46 @@
+{
+  "name": "void-media-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "prepare": "lefthook install",
+    "dev": "turbo dev --filter=web",
+    "build": "turbo build",
+    "deploy": "pnpm --filter web run deploy",
+    "connect": "pnpm --filter web connect",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "typecheck": "turbo typecheck",
+    "test": "vp test run",
+    "lint": "vp lint",
+    "format": "vp fmt --write",
+    "format:check": "vp fmt --check",
+    "md:check": "markdownlint-cli2",
+    "md:fix": "markdownlint-cli2 --fix",
+    "zod:check": "node docs/rules/zod-v4/check.js",
+    "ui:check": "node .agents/skills/sweet-mode/scripts/ui-guardrails.js",
+    "skills:check": "node scripts/agent-skills.js",
+    "skills:update": "node scripts/agent-skills.js --update",
+    "rules:check": "pnpm zod:check && pnpm ui:check && pnpm skills:check",
+    "knip": "knip",
+    "verify": "pnpm format:check && pnpm md:check && pnpm lint && pnpm rules:check && pnpm typecheck && pnpm test && pnpm build && pnpm knip",
+    "seed:admin": "pnpm --filter web exec node scripts/seed-admin.mjs"
+  },
+  "devDependencies": {
+    "@shadcn/lint": "^0.2.5",
+    "@workspace/typescript-config": "workspace:*",
+    "knip": "^6.44.2",
+    "lefthook": "^2.2.2",
+    "markdownlint-cli2": "^0.24.0",
+    "turbo": "^2.11.10",
+    "typescript": "^7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+    "vite-plus": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.0.0"
+}

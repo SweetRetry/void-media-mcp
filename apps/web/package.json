@@ -1,0 +1,45 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "connect": "void connect --platform cloudflare",
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
+    "typecheck": "void prepare && tsc --noEmit",
+    "deploy": "void deploy",
+    "db:generate": "void db generate",
+    "db:migrate": "void db migrate",
+    "predev": "void db migrate"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.19",
+    "@better-auth/mcp": "1.7.19",
+    "@better-auth/oauth-provider": "1.7.19",
+    "@modelcontextprotocol/server": "2.4.0",
+    "@tanstack/react-router": "^1.170.46",
+    "@tanstack/react-start": "^1.169.5",
+    "@workspace/model-providers": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "better-auth": "1.7.19",
+    "jose": "6.2.15",
+    "motion": "^14.10.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "@workspace/typescript-config": "workspace:*",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+    "vite-plus": "^1.5.0",
+    "void": "1.6.2"
+  }
+}
