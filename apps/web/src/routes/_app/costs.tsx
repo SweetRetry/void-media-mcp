@@ -8,11 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { models } from "@workspace/model-providers"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { z } from "zod"
 
-import { dailySeries, SpendChart } from "@/components/app/charts"
 import { ActivityHeatmap } from "@/components/ui/activity-heatmap"
 import {
   Breakdown,
@@ -33,21 +30,20 @@ export const Route = createFileRoute("/_app/costs")({
   component: Costs,
 })
 
-/** Keyed by the whole catalog, so a model keeps its color in a range where it spent little. */
-const MODEL_COLORS = breakdownColors(models.map((model) => model.id))
-
 function Costs() {
   const { report, year } = Route.useLoaderData()
   const { days } = Route.useLoaderDeps()
   const navigate = Route.useNavigate()
   const totals = report.totals
-  const series = dailySeries(report.byDay, days)
   const drift = (totals?.quotedUsd ?? 0) - (totals?.costUsd ?? 0)
   const parts = report.byModel.map((row) => ({
     key: row.model,
     label: modelName(row.model),
     value: row.costUsd ?? 0,
   }))
+  // By rank in this range, not by catalog: with 15 models the catalog walks the five chart hues
+  // three times, so two neighbours in the bar could share a hue.
+  const colors = breakdownColors(parts.map((part) => part.key))
 
   return (
     <>
@@ -91,7 +87,7 @@ function Costs() {
             <h2 className="text-sm font-medium">Delivered by model</h2>
             <Breakdown
               items={parts}
-              colors={MODEL_COLORS}
+              colors={colors}
               formatValue={usd}
               formatShare={(share) => `${Math.round(share)}% of delivered`}
             >
@@ -110,80 +106,52 @@ function Costs() {
           />
         </section>
 
-        {/* The day view is a chart and the table of the same numbers; the model view is its table. */}
-        <Tabs defaultValue="day">
-          <TabsList>
-            <TabsTrigger value="day">By day</TabsTrigger>
-            <TabsTrigger value="model">By model</TabsTrigger>
-          </TabsList>
-          <TabsContent value="day" className="flex flex-col gap-6">
-            <SpendChart data={series} compare />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Day (UTC)</TableHead>
-                  <TableHead className="text-right">Generations</TableHead>
-                  <TableHead className="text-right">Quoted</TableHead>
-                  <TableHead className="text-right">Delivered</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...series].reverse().map((row) => (
-                  <TableRow key={row.day}>
-                    <TableCell>{row.day}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.quoted)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.cost)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TabsContent>
-          <TabsContent value="model" className="flex flex-col gap-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Model</TableHead>
-                  <TableHead className="text-right">Generations</TableHead>
-                  <TableHead className="text-right">Failed</TableHead>
-                  <TableHead className="text-right">Possibly billed</TableHead>
-                  <TableHead className="text-right">Quoted</TableHead>
-                  <TableHead className="text-right">Delivered</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {report.byModel.map((row) => (
-                  <TableRow key={row.model}>
-                    <TableCell>{modelName(row.model)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.failed}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {row.possiblyBilledRuns}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.quotedUsd)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{usd(row.costUsd)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell>Total</TableCell>
-                  <TableCell className="text-right tabular-nums">{totals?.tasks ?? 0}</TableCell>
-                  <TableCell className="text-right tabular-nums">{totals?.failed ?? 0}</TableCell>
+        {/* The audit the bar leaves out: per model, what failed, what may be billed, what was quoted. */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-sm font-medium">By model</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Model</TableHead>
+                <TableHead className="text-right">Generations</TableHead>
+                <TableHead className="text-right">Failed</TableHead>
+                <TableHead className="text-right">Possibly billed</TableHead>
+                <TableHead className="text-right">Quoted</TableHead>
+                <TableHead className="text-right">Delivered</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {report.byModel.map((row) => (
+                <TableRow key={row.model}>
+                  <TableCell>{modelName(row.model)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.tasks}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.failed}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {totals?.possiblyBilledRuns ?? 0}
+                    {row.possiblyBilledRuns}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {usd(totals?.quotedUsd ?? 0)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {usd(totals?.costUsd ?? 0)}
-                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{usd(row.quotedUsd)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{usd(row.costUsd)}</TableCell>
                 </TableRow>
-              </TableFooter>
-            </Table>
-          </TabsContent>
-        </Tabs>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell>Total</TableCell>
+                <TableCell className="text-right tabular-nums">{totals?.tasks ?? 0}</TableCell>
+                <TableCell className="text-right tabular-nums">{totals?.failed ?? 0}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {totals?.possiblyBilledRuns ?? 0}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {usd(totals?.quotedUsd ?? 0)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {usd(totals?.costUsd ?? 0)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </section>
       </div>
     </>
   )

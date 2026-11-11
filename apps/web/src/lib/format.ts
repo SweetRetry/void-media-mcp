@@ -7,7 +7,7 @@ export const usd = (value: number | null | undefined) =>
     : `$${value.toFixed(value !== 0 && Math.abs(value) < 1 ? 4 : 2)}`
 
 /** The pages are in English, so dates are too, whatever the browser locale. */
-export const LOCALE = "en-US"
+const LOCALE = "en-US"
 
 const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" })
 const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -32,13 +32,6 @@ export function ago(iso: string, now = Date.now()) {
 
 export const bytes = (n: number) =>
   n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
-
-/** The days of a range, oldest first, in UTC like the cost report's `day`. */
-export function daysOf(count: number, now = new Date()) {
-  return Array.from({ length: count }, (_, index) =>
-    new Date(now.getTime() - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10)
-  )
-}
 
 /** A date and time in `timeZone`, or the runtime's own zone when none is given. */
 export const dateTime = (iso: string, timeZone?: string) =>
