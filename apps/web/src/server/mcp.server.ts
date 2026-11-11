@@ -1,11 +1,24 @@
 import { ASPECT_RATIOS, controlsOf, models, type MediaModel } from "@workspace/model-providers"
-import { McpServer } from "@modelcontextprotocol/server"
+import {
+  type ClientCapabilities,
+  inputRequired,
+  inputResponse,
+  McpServer,
+} from "@modelcontextprotocol/server"
 import env from "@env"
 import { z } from "zod"
 
+import type { Quote } from "./generation/pricing"
 import { previewOf } from "./generation/preview.server"
 import { storedOf } from "./generation/runs.server"
-import { advanceTask, mediaModelOf, submitTask, taskOf } from "./generation/tasks.server"
+import {
+  advanceTask,
+  checkTask,
+  mediaModelOf,
+  submitTask,
+  taskByClientKey,
+  taskOf,
+} from "./generation/tasks.server"
 import { costReport, listTasks, taskView, type TaskView } from "./generation/views.server"
 
 /** Who is calling, from the verified access token: the user (`sub`) and the OAuth client (`azp`). */
@@ -52,6 +65,23 @@ const refused = (message: string) => ({
   content: [{ type: "text" as const, text: message }],
   isError: true,
 })
+
+/**
+ * Whether the client can show the user a confirmation form. Only a 2026-07-28 request says so (the
+ * handler fills the capabilities in from its envelope); a 2025-era request is served statelessly,
+ * has none and cannot be asked anything. A bare `elicitation: {}` means form mode.
+ */
+function canConfirm(capabilities: ClientCapabilities | undefined) {
+  const elicitation = capabilities?.elicitation
+  return !!elicitation && (elicitation.form !== undefined || Object.keys(elicitation).length === 0)
+}
+
+/** What the user is asked before a task is recorded: the model, the runs and the quote. */
+function confirmation({ model, runs, quote }: { model: MediaModel; runs: number; quote: Quote }) {
+  const price =
+    quote.usd === null ? "at a price the catalog cannot tell" : `for $${+quote.usd.toFixed(4)}`
+  return `Generate ${model.modality} with ${model.name}, ${runs} ${runs === 1 ? "run" : "runs"} ${price} (list price)?`
+}
 
 const params = z
   .object({
@@ -157,7 +187,8 @@ export function mcpServer(caller: Caller) {
       description: [
         "Generate images, video or audio with one model. Images usually finish within the call;",
         "video returns a task to collect with get_task. Each run is billed by the provider, so",
-        "prefer runs=1 unless asked for variations. Pass client_key to make a retry idempotent.",
+        "prefer runs=1 unless asked for variations. A client that can ask its user is sent the",
+        "quote to confirm first. Pass client_key to make a retry idempotent.",
         "Returns the task with its quote and, once done, public output URLs.",
       ].join(" "),
       inputSchema: z.object({
@@ -177,15 +208,35 @@ export function mcpServer(caller: Caller) {
           ),
       }),
     },
-    async (input) => {
-      const submitted = await submitTask(caller, {
+    async (input, ctx) => {
+      const request = {
         model: input.model,
         prompt: input.prompt,
         params: input.params as never,
         references: input.references,
         runs: input.runs,
         clientKey: input.client_key,
-      })
+      }
+      // A retry of a task that already exists spends nothing, so it needs no second confirmation.
+      const retried =
+        input.client_key !== undefined && (await taskByClientKey(caller.userId, input.client_key))
+      if (!retried && canConfirm(server.server.getClientCapabilities())) {
+        const checked = checkTask(request)
+        if ("refused" in checked) return refused(checked.refused)
+        const answer = inputResponse(ctx.mcpReq.inputResponses, "confirm")
+        if (answer.kind !== "elicit")
+          return inputRequired({
+            inputRequests: {
+              confirm: inputRequired.elicit({
+                message: confirmation(checked),
+                requestedSchema: { type: "object", properties: {} },
+              }),
+            },
+          })
+        if (answer.action !== "accept")
+          return refused("The user declined this generation. Do not retry it unless they ask.")
+      }
+      const submitted = await submitTask(caller, request)
       if ("refused" in submitted) return refused(submitted.refused)
       const wait = input.wait_seconds ?? (submitted.ok.modality === "video" ? 0 : 60)
       const task = (await waitFor(submitted.ok.id, wait)) ?? submitted.ok

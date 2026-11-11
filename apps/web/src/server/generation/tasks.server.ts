@@ -5,12 +5,13 @@ import {
   models,
   type Params,
   type Reference,
+  type ResolvedInput,
   resolveInput,
 } from "@workspace/model-providers"
 import { and, asc, db, eq, inArray } from "void/db"
 import { storage } from "void/storage"
 
-import { costOf, maxRunsOf, quoteOf } from "./pricing"
+import { costOf, maxRunsOf, type Quote, quoteOf } from "./pricing"
 import { pollRun, submitRun } from "./provider.server"
 import { outputKey, type Run, runOf, runsOf } from "./runs.server"
 
@@ -44,14 +45,12 @@ export type SubmitInput = {
 
 export type Submitted = { ok: TaskRow } | { refused: string }
 
-/**
- * Accepts a request: checks it against the model, prices it, records it as queued, then starts it.
- * The same `clientKey` from the same user returns the task it already made.
- */
-export async function submitTask(
-  owner: { userId: string; clientId: string | null },
+/** Checks a request against its model and prices it. Records nothing, so it is safe to call to show a quote. */
+export function checkTask(
   input: SubmitInput
-): Promise<Submitted> {
+):
+  | { refused: string }
+  | { model: MediaModel; runs: number; resolved: ResolvedInput; quote: Quote } {
   const model = mediaModelOf(input.model)
   if (!model) return { refused: `Unknown model "${input.model}". Call list_models.` }
   const runs = input.runs ?? 1
@@ -65,18 +64,40 @@ export async function submitTask(
   })
   if (!resolved.ok)
     return { refused: resolved.issues.map((issue) => `${issue.path} ${issue.message}`).join("; ") }
+  return {
+    model,
+    runs,
+    resolved: resolved.value,
+    quote: quoteOf(model, resolved.value.params, runs),
+  }
+}
 
-  if (input.clientKey) {
-    const [existing] = await db
+/** The task this user already made with this `clientKey`, if any. */
+export const taskByClientKey = async (userId: string, clientKey: string) =>
+  (
+    await db
       .select()
       .from(generationTask)
-      .where(
-        and(eq(generationTask.userId, owner.userId), eq(generationTask.clientKey, input.clientKey))
-      )
+      .where(and(eq(generationTask.userId, userId), eq(generationTask.clientKey, clientKey)))
+  )[0]
+
+/**
+ * Accepts a request: checks it against the model, prices it, records it as queued, then starts it.
+ * The same `clientKey` from the same user returns the task it already made.
+ */
+export async function submitTask(
+  owner: { userId: string; clientId: string | null },
+  input: SubmitInput
+): Promise<Submitted> {
+  const checked = checkTask(input)
+  if ("refused" in checked) return checked
+  const { model, runs, resolved, quote } = checked
+
+  if (input.clientKey) {
+    const existing = await taskByClientKey(owner.userId, input.clientKey)
     if (existing) return { ok: existing }
   }
 
-  const quote = quoteOf(model, resolved.value.params, runs)
   const [task] = await db
     .insert(generationTask)
     .values({
@@ -87,9 +108,9 @@ export async function submitTask(
       model: model.id,
       provider: model.provider,
       modality: model.modality,
-      prompt: resolved.value.prompt,
-      params: resolved.value.params,
-      references: [...resolved.value.references],
+      prompt: resolved.prompt,
+      params: resolved.params,
+      references: [...resolved.references],
       runs,
       state: "queued",
       quoteUsd: quote.usd,
