@@ -7,6 +7,9 @@ import {
   type ResolvedInput,
 } from "@workspace/model-providers"
 import env from "@env"
+import { storage } from "void/storage"
+
+import { outputIdOf, outputKey } from "./runs.server"
 
 /*
  * The one place the server talks to a generation provider. `packages/model-providers` describes
@@ -27,15 +30,36 @@ export type Sent = Outcome | { state: "unknown"; reason: string }
 const keyOf = (keyEnv: string) =>
   ({ ARK_API_KEY: env.ARK_API_KEY, TUZI_API_KEY: env.TUZI_API_KEY })[keyEnv]
 
-async function bodyOf(call: HttpCall): Promise<{ body?: BodyInit; type?: string }> {
+/**
+ * A reference's bytes, for a call that uploads them. Our own outputs (`/f/<id>`) are read from R2:
+ * a Worker cannot fetch its own workers.dev URL, Cloudflare answers with an error page instead.
+ */
+async function fileOf(url: string): Promise<Blob | { failed: string }> {
+  const parsed = new URL(url)
+  if (parsed.origin === new URL(env.BETTER_AUTH_URL).origin && parsed.pathname.startsWith("/f/")) {
+    const id = outputIdOf(parsed.pathname.slice(3))
+    const object = id && (await storage.get(outputKey(id)))
+    if (!object) return { failed: `${url} is not a stored output.` }
+    return new Blob([await object.arrayBuffer()], { type: object.httpMetadata?.contentType })
+  }
+  const response = await fetch(url).catch(() => null)
+  if (!response?.ok)
+    return { failed: `${url} could not be fetched (${response?.status ?? "no answer"}).` }
+  return response.blob()
+}
+
+async function bodyOf(
+  call: HttpCall
+): Promise<{ body?: BodyInit; type?: string } | { failed: string }> {
   if (!call.body) return {}
   if (call.body.kind === "json")
     return { body: JSON.stringify(call.body.value), type: "application/json" }
   const form = new FormData()
   for (const [field, value] of Object.entries(call.body.fields)) form.append(field, value)
   for (const file of call.body.files) {
-    const response = await fetch(file.url)
-    form.append(file.field, await response.blob())
+    const blob = await fileOf(file.url)
+    if ("failed" in blob) return blob
+    form.append(file.field, blob)
   }
   return { body: form }
 }
@@ -44,7 +68,9 @@ async function send(model: MediaModel, call: HttpCall): Promise<{ ok: unknown } 
   const provider = providerOf(model.provider)
   const key = keyOf(provider.keyEnv)
   if (!key) return { state: "failed", reason: `${provider.name} is not configured.` }
-  const { body, type } = await bodyOf(call)
+  const built = await bodyOf(call)
+  if ("failed" in built) return { state: "failed", reason: `A reference: ${built.failed}` }
+  const { body, type } = built
   let response: Response
   try {
     response = await fetch(`${provider.baseUrl}${call.path}`, {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { storage } from "void/storage"
 
-import { outputKey } from "@/server/generation/runs.server"
+import { outputIdOf, outputKey } from "@/server/generation/runs.server"
 
 /**
  * A generated file. The 128-bit random id is the capability: anyone with the link can fetch it, so
@@ -11,8 +11,8 @@ export const Route = createFileRoute("/f/$file")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const id = params.file.split(".")[0] ?? ""
-        if (!/^[0-9a-f]{32}$/.test(id)) return new Response("Not found", { status: 404 })
+        const id = outputIdOf(params.file)
+        if (!id) return new Response("Not found", { status: 404 })
         const object = await storage.get(outputKey(id))
         if (!object) return new Response("Not found", { status: 404 })
         const headers = new Headers()

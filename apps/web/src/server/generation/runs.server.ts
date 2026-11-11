@@ -34,6 +34,12 @@ export const storedOf = (providerRef: string | null) =>
 
 export const outputKey = (id: string) => `o/${id}`
 
+/** The output id in a `/f/<id>.<ext>` file name, or null when it is not one. */
+export function outputIdOf(fileName: string) {
+  const id = fileName.split(".")[0] ?? ""
+  return /^[0-9a-f]{32}$/.test(id) ? id : null
+}
+
 const randomId = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
     b.toString(16).padStart(2, "0")
