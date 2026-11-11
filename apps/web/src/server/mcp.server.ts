@@ -1,11 +1,11 @@
-import { ASPECT_RATIOS, controlsOf, models } from "@workspace/model-providers"
+import { ASPECT_RATIOS, controlsOf, models, type MediaModel } from "@workspace/model-providers"
 import { McpServer } from "@modelcontextprotocol/server"
 import env from "@env"
 import { z } from "zod"
 
 import { previewOf } from "./generation/preview.server"
 import { storedOf } from "./generation/runs.server"
-import { advanceTask, submitTask, taskOf } from "./generation/tasks.server"
+import { advanceTask, mediaModelOf, submitTask, taskOf } from "./generation/tasks.server"
 import { costReport, listTasks, taskView, type TaskView } from "./generation/views.server"
 
 /** Who is calling, from the verified access token: the user (`sub`) and the OAuth client (`azp`). */
@@ -74,6 +74,9 @@ const reference = z.object({
   mime: z.string().describe("e.g. image/png, image/jpeg, video/mp4"),
 })
 
+/** Where a model's guide is read as an MCP resource. */
+const guideUri = (model: MediaModel) => `void-media://guides/${model.id}`
+
 const isoDate = z.iso.datetime({ offset: true }).or(z.iso.date())
 
 /** A fresh MCP server for one request, with the caller bound into every tool. */
@@ -85,8 +88,11 @@ export function mcpServer(caller: Caller) {
     "list_models",
     {
       title: "List models",
-      description:
-        "Image, video and audio generation models: id, capabilities, controls with their options and defaults, and list price.",
+      description: [
+        "Image, video and audio generation models: id, capabilities, controls with their options and defaults,",
+        "and list price. A model with a guide takes its syntax in the prompt: call get_model_guide before",
+        "writing for it, and follow the guide over what you remember about the model.",
+      ].join(" "),
       inputSchema: z.object({ modality: z.enum(["image", "video", "audio"]).optional() }),
       annotations: { readOnlyHint: true },
     },
@@ -102,6 +108,7 @@ export function mcpServer(caller: Caller) {
           controls: controlsOf(model.params).map(({ label: _, widget: __, ...control }) => control),
           maxReferences: model.maxReferences,
           outputsPerRun: model.outputsPerRun,
+          guide: model.guide && guideUri(model),
           price:
             model.price && "tokensOf" in model.price
               ? { currency: "USD", perMillionOutputTokens: model.price.perMillion }
@@ -110,6 +117,38 @@ export function mcpServer(caller: Caller) {
       return { content: [{ type: "text", text: JSON.stringify(list, null, 2) }] }
     }
   )
+
+  server.registerTool(
+    "get_model_guide",
+    {
+      title: "Get model guide",
+      description: [
+        "The prompt-writing guide of a model that list_models marks with a guide: its current version,",
+        "prompt syntax and parameters. Read it before the first generate call for that model.",
+      ].join(" "),
+      inputSchema: z.object({ model: z.string().describe("A model id or name from list_models.") }),
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      const model = mediaModelOf(input.model)
+      if (!model) return refused(`Unknown model "${input.model}". Call list_models.`)
+      if (!model.guide)
+        return refused(`${model.name} has no guide. Its controls are in list_models.`)
+      return { content: [{ type: "text", text: model.guide }] }
+    }
+  )
+
+  // The same guides as resources, for clients that let a person attach one.
+  for (const model of models) {
+    const { guide } = model
+    if (!guide) continue
+    server.registerResource(
+      `${model.id}-guide`,
+      guideUri(model),
+      { title: `${model.name} prompt guide`, mimeType: "text/markdown" },
+      async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: guide }] })
+    )
+  }
 
   server.registerTool(
     "generate",

@@ -4,7 +4,7 @@ A remote MCP server on Cloudflare that lets Claude Code generate images, video a
 
 ## What it does
 
-- **MCP tools** at `/mcp` (Streamable HTTP): `list_models`, `generate`, `get_task`, `view_output` (scaled previews of image outputs, so Claude can look at what it made), `list_tasks` (searchable log), `cost_report`.
+- **MCP tools** at `/mcp` (Streamable HTTP): `list_models`, `get_model_guide` (the prompt-writing guide of a model whose syntax lives in the prompt, such as Midjourney; also an MCP resource at `void-media://guides/<model id>`), `generate`, `get_task`, `view_output` (scaled previews of image outputs, so Claude can look at what it made), `list_tasks` (searchable log), `cost_report`.
 - **Standard MCP auth.** OAuth 2.1 with PKCE, dynamic client registration and RFC 9728 discovery, served by Better Auth's `mcp()` plugin. Access tokens are JWTs bound to `/mcp`.
 - **One admin.** Sign-up is off. `scripts/seed-admin.mjs` creates the account with a random email and password.
 - **Tasks.** Each request is a row in D1 that moves queued → running → succeeded | partial | failed (`confirming` while a lost run may still deliver). A cron advances open tasks every minute.

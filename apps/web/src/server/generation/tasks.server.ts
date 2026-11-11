@@ -30,7 +30,7 @@ const SYNC_LOST_MS = 10 * 60_000
 const CONFIRM_MS = 24 * 3_600_000
 
 /** A media model by API id or by its display name. */
-const mediaModelOf = (key: string): MediaModel | undefined =>
+export const mediaModelOf = (key: string): MediaModel | undefined =>
   modelOf(key) ?? models.find((model) => model.name === key)
 
 export type SubmitInput = {

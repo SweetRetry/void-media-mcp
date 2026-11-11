@@ -52,6 +52,11 @@ export type MediaModel = Entry & {
   maxReferences?: number
   /** Files one run delivers, when not one. Midjourney makes four. Billing stays per run. */
   outputsPerRun?: number
+  /**
+   * Markdown an MCP client reads before writing the prompt, for a model whose syntax lives in the prompt
+   * instead of in controls. Clients otherwise fill it in from training data, which lags the provider.
+   */
+  guide?: string
   /** The provider refuses a first or last frame together with reference media, as MiniMax does. */
   framesAlone?: true
 }

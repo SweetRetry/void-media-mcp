@@ -3,6 +3,7 @@ import { ASPECT_RATIOS, type ParamSpec, type Quality } from "../lib/params"
 import type { OutputTokenPrice, Price } from "../lib/price"
 import { outputTokens } from "../lib/gpt-image"
 import type { Provider } from "../lib/provider"
+import midjourneyGuide from "../guides/midjourney.md?raw"
 
 /** Tu-zi fronts OpenAI, Google and Midjourney models behind one key. */
 export const tuzi: Provider = {
@@ -145,9 +146,10 @@ export const tuziModels: MediaModel[] = [
     capabilities: ["text-to-image", "multi-reference"],
     params: {},
     outputsPerRun: 4,
+    guide: midjourneyGuide,
     price: { amount: 0.15, currency: "CNY", per: "output" },
     // Docs: https://api.tu-zi.com/en/docs/api/midjourney
-    // No controls. Midjourney flags (`--ar 16:9 --v 7`) go in the prompt. One run delivers four images.
+    // No controls: flags go in the prompt, and `guides/midjourney.md` is their reference. One run delivers four images.
     // Midjourney publishes no API price, so the price is the user's rule: 0.15 CNY per task.
   },
   {
