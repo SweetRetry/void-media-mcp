@@ -2,8 +2,14 @@ import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-rout
 import { Alert, AlertDescription, AlertTitle } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
 import { controlsOf, modelOf } from "@workspace/model-providers"
-import { CircleAlertIcon, DownloadIcon, RefreshCwIcon } from "lucide-react"
-import type { ReactNode } from "react"
+import {
+  CircleAlertIcon,
+  DownloadIcon,
+  FileQuestionIcon,
+  MusicIcon,
+  RefreshCwIcon,
+} from "lucide-react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 
 import { CopyButton } from "@/components/app/copy-button"
 import { LocalTime } from "@/components/app/local-time"
@@ -25,7 +31,7 @@ export const Route = createFileRoute("/_app/tasks/$taskId")({
 const OPEN = new Set(["queued", "running", "confirming"])
 
 function TaskDetail() {
-  const { task, price, clientName } = Route.useLoaderData()
+  const { task, price, clientName, sources } = Route.useLoaderData()
   const router = useRouter()
   const open = OPEN.has(task.state)
   const model = modelOf(task.model)
@@ -114,6 +120,33 @@ function TaskDetail() {
             </div>
             <p className="text-sm whitespace-pre-wrap">{task.prompt}</p>
           </section>
+
+          {task.references.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium">References</h2>
+              <ul className="flex flex-wrap gap-4">
+                {task.references.map((reference, index) => (
+                  <li key={`${index}-${reference.url}`} className="flex w-32 flex-col gap-1.5">
+                    <a href={reference.url} target="_blank" rel="noreferrer">
+                      <ReferenceMedia url={reference.url} mime={reference.mime} />
+                    </a>
+                    <span className="text-xs text-muted-foreground">
+                      {ROLES[reference.role] ?? reference.role}
+                    </span>
+                    {sources[reference.url] && (
+                      <Link
+                        to="/tasks/$taskId"
+                        params={{ taskId: sources[reference.url]! }}
+                        className="text-xs hover:underline"
+                      >
+                        From a generation
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
 
         <aside className="col-span-12 flex flex-col gap-8 lg:col-span-4">
@@ -169,6 +202,62 @@ function TaskDetail() {
         </aside>
       </div>
     </>
+  )
+}
+
+const ROLES: Record<string, string> = {
+  reference: "Reference",
+  "first-frame": "First frame",
+  "last-frame": "Last frame",
+  mask: "Mask",
+}
+
+/**
+ * A reference as a square. Outside URLs often expire (temporary image hosts), so one that no longer
+ * loads says so instead of showing a broken image.
+ */
+function ReferenceMedia({ url, mime }: { url: string; mime: string }) {
+  const [gone, setGone] = useState(false)
+  const image = useRef<HTMLImageElement>(null)
+  // An image that failed while the page was server-rendered fired its error before React listened.
+  useEffect(() => {
+    if (image.current?.complete && image.current.naturalWidth === 0) setGone(true)
+  }, [])
+  const box = "flex size-32 items-center justify-center overflow-hidden rounded-lg bg-muted"
+  if (gone)
+    return (
+      <div className={`${box} flex-col gap-1 text-muted-foreground`}>
+        <FileQuestionIcon className="size-5" aria-hidden />
+        <span className="text-xs">Unavailable</span>
+      </div>
+    )
+  if (mime.startsWith("video/"))
+    return (
+      <video
+        src={url}
+        muted
+        preload="metadata"
+        className={`${box} object-cover`}
+        onError={() => setGone(true)}
+      >
+        <track kind="captions" />
+      </video>
+    )
+  if (mime.startsWith("audio/"))
+    return (
+      <div className={`${box} text-muted-foreground`}>
+        <MusicIcon className="size-5" aria-hidden />
+      </div>
+    )
+  return (
+    <img
+      ref={image}
+      src={url}
+      alt="Reference"
+      loading="lazy"
+      className={`${box} object-cover`}
+      onError={() => setGone(true)}
+    />
   )
 }
 

@@ -14,6 +14,7 @@ import { z } from "zod"
 
 import { getAuth } from "./auth/auth.server"
 import { signedIn } from "./auth/session.functions"
+import { outputIdOf } from "./generation/runs.server"
 import { advanceTask, taskOf } from "./generation/tasks.server"
 import { offOf, setSwitch } from "./generation/switches.server"
 import { costReport, countTasks, dailySpend, listTasks, taskView } from "./generation/views.server"
@@ -93,8 +94,37 @@ export const taskDetail = createServerFn()
           .from(oauthClient)
           .where(eq(oauthClient.clientId, task.clientId))
       : []
-    return { task: view(task), price: task.price as Price | null, clientName: client?.name ?? null }
+    return {
+      task: view(task),
+      price: task.price as Price | null,
+      clientName: client?.name ?? null,
+      sources: await sourcesOf(context.user.id, task.references),
+    }
   })
+
+/**
+ * For each reference that is one of our own outputs, the task that generated it, so the detail
+ * page can link back along a chain of edits. Keyed by the reference URL.
+ */
+async function sourcesOf(userId: string, references: { url: string }[]) {
+  const origin = new URL(env.BETTER_AUTH_URL).origin
+  const sources: Record<string, string> = {}
+  for (const { url } of references) {
+    const parsed = URL.parse(url)
+    if (parsed?.origin !== origin || !parsed.pathname.startsWith("/f/")) continue
+    const id = outputIdOf(parsed.pathname.slice(3))
+    if (!id) continue
+    const [row] = await db
+      .select({ id: generationTask.id })
+      .from(generationTask)
+      .where(
+        and(eq(generationTask.userId, userId), sql`${generationTask.providerRef} like ${`%${id}%`}`)
+      )
+      .limit(1)
+    if (row) sources[url] = row.id
+  }
+  return sources
+}
 
 export const costsPage = createServerFn()
   .middleware([signedIn])

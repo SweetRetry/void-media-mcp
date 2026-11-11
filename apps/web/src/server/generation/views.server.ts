@@ -30,6 +30,7 @@ export function taskView(task: TaskRow, origin: string) {
     modality: task.modality,
     prompt: task.prompt,
     params: task.params,
+    references: task.references,
     runs: task.runs,
     pendingRuns: runs.filter((run) => "pending" in run).length,
     outputs,
