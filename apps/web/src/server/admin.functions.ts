@@ -5,7 +5,7 @@ import {
   oauthConsent,
   oauthRefreshToken,
 } from "@db/schema"
-import type { Price } from "@workspace/model-providers"
+import { type Price, providers } from "@workspace/model-providers"
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import env from "@env"
@@ -143,7 +143,15 @@ export const modelsPage = createServerFn()
   .middleware([signedIn])
   .handler(async () => {
     const off = await offOf()
-    return { offModels: [...off.models], offProviders: [...off.providers] }
+    // A provider without its key fails every submission, which the page has to say.
+    const keys = env as unknown as Record<string, string | undefined>
+    return {
+      offModels: [...off.models],
+      offProviders: [...off.providers],
+      keyless: providers
+        .filter((provider) => !keys[provider.keyEnv])
+        .map((provider) => provider.id),
+    }
   })
 
 /** Turns a model or a whole provider on or off for every MCP client. */
