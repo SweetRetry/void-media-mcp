@@ -14,6 +14,7 @@ import { storage } from "void/storage"
 import { costOf, maxRunsOf, type Quote, quoteOf } from "./pricing"
 import { pollRun, submitRun } from "./provider.server"
 import { outputKey, type Run, runOf, runsOf } from "./runs.server"
+import { isOn, offOf } from "./switches.server"
 
 /*
  * A task's state machine. `advanceTask` moves one task along and is safe to call any number of
@@ -46,13 +47,15 @@ export type SubmitInput = {
 export type Submitted = { ok: TaskRow } | { refused: string }
 
 /** Checks a request against its model and prices it. Records nothing, so it is safe to call to show a quote. */
-export function checkTask(
+export async function checkTask(
   input: SubmitInput
-):
-  | { refused: string }
-  | { model: MediaModel; runs: number; resolved: ResolvedInput; quote: Quote } {
+): Promise<
+  { refused: string } | { model: MediaModel; runs: number; resolved: ResolvedInput; quote: Quote }
+> {
   const model = mediaModelOf(input.model)
   if (!model) return { refused: `Unknown model "${input.model}". Call list_models.` }
+  if (!isOn(await offOf(), model))
+    return { refused: `${model.name} is turned off. Call list_models for the models that are on.` }
   const runs = input.runs ?? 1
   const maxRuns = maxRunsOf(model)
   if (!Number.isInteger(runs) || runs < 1 || runs > maxRuns)
@@ -89,14 +92,15 @@ export async function submitTask(
   owner: { userId: string; clientId: string | null },
   input: SubmitInput
 ): Promise<Submitted> {
-  const checked = checkTask(input)
-  if ("refused" in checked) return checked
-  const { model, runs, resolved, quote } = checked
-
+  // A retry returns the task it already made, even if its model was turned off since.
   if (input.clientKey) {
     const existing = await taskByClientKey(owner.userId, input.clientKey)
     if (existing) return { ok: existing }
   }
+
+  const checked = await checkTask(input)
+  if ("refused" in checked) return checked
+  const { model, runs, resolved, quote } = checked
 
   const [task] = await db
     .insert(generationTask)

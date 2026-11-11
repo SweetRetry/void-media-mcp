@@ -140,3 +140,11 @@ export async function costReport(userId: string, range: Range) {
     byDay,
   }
 }
+
+/** Delivered spend and task count per UTC day since a date, for the activity heatmap. */
+export const dailySpend = (userId: string, since: Date) =>
+  db
+    .select({ day, costUsd: sum(generationTask.costUsd).mapWith(Number), tasks: count() })
+    .from(generationTask)
+    .where(inRange(userId, { since }))
+    .groupBy(day)

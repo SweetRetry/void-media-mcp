@@ -19,6 +19,7 @@ import {
   taskByClientKey,
   taskOf,
 } from "./generation/tasks.server"
+import { isOn, offOf } from "./generation/switches.server"
 import { costReport, listTasks, taskView, type TaskView } from "./generation/views.server"
 
 /** Who is calling, from the verified access token: the user (`sub`) and the OAuth client (`azp`). */
@@ -127,8 +128,9 @@ export function mcpServer(caller: Caller) {
       annotations: { readOnlyHint: true },
     },
     async ({ modality }) => {
+      const off = await offOf()
       const list = models
-        .filter((model) => !modality || model.modality === modality)
+        .filter((model) => (!modality || model.modality === modality) && isOn(off, model))
         .map((model) => ({
           id: model.id,
           name: model.name,
@@ -221,7 +223,7 @@ export function mcpServer(caller: Caller) {
       const retried =
         input.client_key !== undefined && (await taskByClientKey(caller.userId, input.client_key))
       if (!retried && canConfirm(server.server.getClientCapabilities())) {
-        const checked = checkTask(request)
+        const checked = await checkTask(request)
         if ("refused" in checked) return refused(checked.refused)
         const answer = inputResponse(ctx.mcpReq.inputResponses, "confirm")
         if (answer.kind !== "elicit")

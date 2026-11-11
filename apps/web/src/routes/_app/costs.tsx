@@ -8,10 +8,18 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import { models } from "@workspace/model-providers"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { z } from "zod"
 
-import { dailySeries, ModelSpendChart, SpendChart } from "@/components/app/charts"
+import { dailySeries, SpendChart } from "@/components/app/charts"
+import { ActivityHeatmap } from "@/components/ui/activity-heatmap"
+import {
+  Breakdown,
+  BreakdownBar,
+  BreakdownLegend,
+  breakdownColors,
+} from "@/components/ui/breakdown"
 import { PageHeader } from "@/components/app/page-header"
 import { RangePicker } from "@/components/app/range-picker"
 import { modelName, runs, usd } from "@/lib/format"
@@ -25,13 +33,21 @@ export const Route = createFileRoute("/_app/costs")({
   component: Costs,
 })
 
+/** Keyed by the whole catalog, so a model keeps its color in a range where it spent little. */
+const MODEL_COLORS = breakdownColors(models.map((model) => model.id))
+
 function Costs() {
-  const { report } = Route.useLoaderData()
+  const { report, year } = Route.useLoaderData()
   const { days } = Route.useLoaderDeps()
   const navigate = Route.useNavigate()
   const totals = report.totals
   const series = dailySeries(report.byDay, days)
   const drift = (totals?.quotedUsd ?? 0) - (totals?.costUsd ?? 0)
+  const parts = report.byModel.map((row) => ({
+    key: row.model,
+    label: modelName(row.model),
+    value: row.costUsd ?? 0,
+  }))
 
   return (
     <>
@@ -70,7 +86,31 @@ function Costs() {
           </dl>
         </section>
 
-        {/* Each view is a chart and the table of the same numbers under it. */}
+        {parts.some((part) => part.value > 0) && (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-sm font-medium">Delivered by model</h2>
+            <Breakdown
+              items={parts}
+              colors={MODEL_COLORS}
+              formatValue={usd}
+              formatShare={(share) => `${Math.round(share)}% of delivered`}
+            >
+              <BreakdownBar label="Delivered spend by model" />
+              <BreakdownLegend />
+            </Breakdown>
+          </section>
+        )}
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-sm font-medium">Past year</h2>
+          <ActivityHeatmap
+            data={year.days.map((row) => ({ date: row.day, value: row.costUsd ?? 0 }))}
+            end={year.end}
+            formatValue={(value) => (value > 0 ? usd(value) : "No spend")}
+          />
+        </section>
+
+        {/* The day view is a chart and the table of the same numbers; the model view is its table. */}
         <Tabs defaultValue="day">
           <TabsList>
             <TabsTrigger value="day">By day</TabsTrigger>
@@ -100,7 +140,6 @@ function Costs() {
             </Table>
           </TabsContent>
           <TabsContent value="model" className="flex flex-col gap-6">
-            {report.byModel.length > 0 && <ModelSpendChart rows={report.byModel} />}
             <Table>
               <TableHeader>
                 <TableRow>

@@ -1,5 +1,5 @@
 import { sql } from "void/db"
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "void/schema-d1"
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "void/schema-d1"
 
 import { user } from "./auth-schema"
 
@@ -74,4 +74,20 @@ export const generationTask = sqliteTable(
     index("generation_task_state_idx").on(table.state, table.createdAt),
     uniqueIndex("generation_task_client_key_idx").on(table.userId, table.clientKey),
   ]
+)
+
+/**
+ * Models and providers the admin turned off. A row means off; deleting it turns the entry back on.
+ * `generate` refuses an off model, and a model whose provider is off, before anything is recorded.
+ * Tasks already running keep going, since their runs may already be billed.
+ */
+export const switchedOff = sqliteTable(
+  "switched_off",
+  {
+    kind: text("kind", { enum: ["model", "provider"] }).notNull(),
+    /** A catalog model id or provider id. */
+    id: text("id").notNull(),
+    offAt: at("off_at").default(now).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.kind, table.id] })]
 )

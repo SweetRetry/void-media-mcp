@@ -1,5 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { controlsOf, type MediaModel, models, providerOf } from "@workspace/model-providers"
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
+import {
+  controlsOf,
+  type MediaModel,
+  models,
+  providerOf,
+  providers,
+} from "@workspace/model-providers"
+import { Switch } from "@workspace/ui/components/switch"
 import {
   Table,
   TableBody,
@@ -10,12 +17,15 @@ import {
 } from "@workspace/ui/components/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
-import { Fragment } from "react"
+import { Fragment, useState } from "react"
+import { toast } from "sonner"
 
 import { CopyButton } from "@/components/app/copy-button"
 import { PageHeader } from "@/components/app/page-header"
+import { modelsPage, switchEntry } from "@/server/admin.functions"
 
 export const Route = createFileRoute("/_app/models")({
+  loader: () => modelsPage(),
   head: () => ({ meta: [{ title: "Models" }] }),
   component: Models,
 })
@@ -23,10 +33,33 @@ export const Route = createFileRoute("/_app/models")({
 const KINDS = ["image", "video", "audio"] as const
 
 function Models() {
+  const data = Route.useLoaderData()
+  const offModels = new Set(data.offModels)
+  const offProviders = new Set<string>(data.offProviders)
   return (
     <>
       <PageHeader crumbs={[{ label: "Models" }]} />
-      <div className="p-4 lg:p-6">
+      <div className="flex flex-col gap-6 p-4 lg:p-6">
+        {/* Off means MCP clients neither see nor can generate with it; running tasks finish. */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium">Providers</h2>
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {providers.map((provider) => (
+              <div key={provider.id} className="flex items-center gap-2 text-sm">
+                <EntrySwitch
+                  kind="provider"
+                  id={provider.id}
+                  name={provider.name}
+                  on={!offProviders.has(provider.id)}
+                />
+                <span>{provider.name}</span>
+                <span className="text-muted-foreground">
+                  {models.filter((model) => model.provider === provider.id).length} models
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
         <Tabs defaultValue="image">
           <TabsList>
             {KINDS.map((kind) => (
@@ -45,6 +78,7 @@ function Models() {
                     <TableHead>List price</TableHead>
                     <TableHead>Settings</TableHead>
                     <TableHead>Can also</TableHead>
+                    <TableHead>On</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -87,6 +121,20 @@ function Models() {
                               ))}
                           </span>
                         </TableCell>
+                        <TableCell className="whitespace-normal">
+                          <EntrySwitch
+                            kind="model"
+                            id={model.id}
+                            name={model.name}
+                            on={!offModels.has(model.id)}
+                            providerOff={offProviders.has(model.provider)}
+                          />
+                          {offProviders.has(model.provider) && (
+                            <span className="block text-xs text-muted-foreground">
+                              Provider off
+                            </span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
@@ -96,6 +144,46 @@ function Models() {
         </Tabs>
       </div>
     </>
+  )
+}
+
+/**
+ * Turns a model or provider on or off. Shows the new state at once and rolls back if the save
+ * fails. A model under an off provider is held off, so its own switch is disabled.
+ */
+function EntrySwitch({
+  kind,
+  id,
+  name,
+  on,
+  providerOff = false,
+}: {
+  kind: "model" | "provider"
+  id: string
+  name: string
+  on: boolean
+  providerOff?: boolean
+}) {
+  const router = useRouter()
+  const [pending, setPending] = useState<boolean | null>(null)
+  return (
+    <Switch
+      checked={(pending ?? on) && !providerOff}
+      disabled={providerOff || pending !== null}
+      aria-label={`${name} on`}
+      onCheckedChange={async (next: boolean) => {
+        setPending(next)
+        try {
+          await switchEntry({ data: { kind, id, on: next } })
+          await router.invalidate()
+          toast.success(`Turned ${name} ${next ? "on" : "off"}`)
+        } catch {
+          toast.error(`Could not turn ${name} ${next ? "on" : "off"}. Try again.`)
+        } finally {
+          setPending(null)
+        }
+      }}
+    />
   )
 }
 

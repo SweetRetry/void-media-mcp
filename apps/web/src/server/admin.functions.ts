@@ -15,7 +15,8 @@ import { z } from "zod"
 import { getAuth } from "./auth/auth.server"
 import { signedIn } from "./auth/session.functions"
 import { advanceTask, taskOf } from "./generation/tasks.server"
-import { costReport, countTasks, listTasks, taskView } from "./generation/views.server"
+import { offOf, setSwitch } from "./generation/switches.server"
+import { costReport, countTasks, dailySpend, listTasks, taskView } from "./generation/views.server"
 
 /*
  * The admin pages' server functions. Every one but `currentUser` runs behind `signedIn`, so it
@@ -41,6 +42,8 @@ export const currentUser = createServerFn().handler(async () => {
 })
 
 const PAGE = 25
+/** 53 weeks: the heatmap's full grid, whatever weekday today is. */
+const HEATMAP_DAYS = 53 * 7
 
 export const tasksPage = createServerFn()
   .middleware([signedIn])
@@ -96,9 +99,33 @@ export const taskDetail = createServerFn()
 export const costsPage = createServerFn()
   .middleware([signedIn])
   .validator(z.object({ days }))
-  .handler(async ({ context, data }) => ({
-    report: await costReport(context.user.id, { since: sinceOf(data.days) }),
-  }))
+  .handler(async ({ context, data }) => {
+    // The heatmap's year ends on today in UTC, the zone the report's days are counted in.
+    const today = new Date().toISOString().slice(0, 10)
+    return {
+      report: await costReport(context.user.id, { since: sinceOf(data.days) }),
+      year: { end: today, days: await dailySpend(context.user.id, sinceOf(HEATMAP_DAYS)) },
+    }
+  })
+
+/** What the admin turned off, for the models page's switches. */
+export const modelsPage = createServerFn()
+  .middleware([signedIn])
+  .handler(async () => {
+    const off = await offOf()
+    return { offModels: [...off.models], offProviders: [...off.providers] }
+  })
+
+/** Turns a model or a whole provider on or off for every MCP client. */
+export const switchEntry = createServerFn({ method: "POST" })
+  .middleware([signedIn])
+  .validator(
+    z.object({ kind: z.enum(["model", "provider"]), id: z.string().max(100), on: z.boolean() })
+  )
+  .handler(async ({ data }) => {
+    await setSwitch(data.kind, data.id, data.on)
+    return { ok: true }
+  })
 
 /** The MCP URL, and every client the admin has authorized, with its last task. */
 export const connection = createServerFn()
