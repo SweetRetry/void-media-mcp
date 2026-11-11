@@ -73,6 +73,15 @@ Rollback restores code, not data. D1 migrations stay applied, so keep each migra
 
 ## CI
 
-`.github/workflows/ci.yml` runs two jobs in parallel on every pull request and push to `main`. `verify` runs `pnpm verify`. `e2e` installs Playwright Chromium and runs `pnpm e2e --screenshots`; it makes no AI requests and needs no Cloudflare account. When it fails, the run keeps `.verification/` for 7 days as the `e2e-evidence` artifact. Dependabot (`.github/dependabot.yml`) bumps the actions monthly.
+`.github/workflows/ci.yml` runs `verify` (`pnpm verify`) on every pull request and push to `main`. Dependabot (`.github/dependabot.yml`) bumps the actions monthly.
 
-Deploying from CI needs a Cloudflare API token; it isn't set up here.
+## Continuous deployment
+
+Every push to `main` deploys. The `deploy` job in `ci.yml` runs after `verify` passes and calls `void deploy --platform cloudflare`, the same readiness-gated path as a local deploy: it applies pending D1 migrations, checks the new version through its preview URL and restores the previous one if the check fails. Runs on `main` queue and are never cancelled, so a deploy is not cut off while it applies migrations.
+
+The job reads two repository settings (Settings › Secrets and variables › Actions):
+
+- `CLOUDFLARE_API_TOKEN` (secret). Create it at Cloudflare dashboard › My Profile › API Tokens from the "Edit Cloudflare Workers" template, then add D1 Edit, since deploy applies migrations. Set it with `gh secret set CLOUDFLARE_API_TOKEN`.
+- `CLOUDFLARE_ACCOUNT_ID` (variable). The `account_id` in `apps/web/void.lock.json`.
+
+Worker secrets are not part of the job. `void deploy` keeps the ones already set with `void secret put`. A schema change still needs its migration committed (`pnpm db:generate`), or the deploy stops.
