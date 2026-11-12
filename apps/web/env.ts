@@ -11,8 +11,8 @@ export default defineEnv({
   // Google OAuth client for the admin's sign-in. Redirect URI: `${BETTER_AUTH_URL}/api/auth/callback/google`.
   GOOGLE_CLIENT_ID: string(),
   GOOGLE_CLIENT_SECRET: string(),
-  // The one Google address allowed to sign in. A secret, so it stays out of the repo.
-  ADMIN_EMAIL: string(),
+  // The Google addresses allowed to sign in, comma-separated. A secret, so they stay out of the repo.
+  ADMIN_EMAILS: string(),
   // Provider keys, named by each provider's `keyEnv` in packages/model-providers. Unset, that
   // provider's models fail at submission.
   ARK_API_KEY: string().optional(),

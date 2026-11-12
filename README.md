@@ -6,7 +6,7 @@ Obscura is a remote MCP server on Cloudflare, served at `https://obscura.sweetre
 
 - **MCP tools** at `/mcp` (Streamable HTTP): `list_models`, `get_model_guide` (the prompt-writing guide of a model whose syntax lives in the prompt, such as Midjourney; also an MCP resource at `obscura://guides/<model id>`), `generate` (a client that supports elicitation on protocol 2026-07-28 is sent the quote to confirm before anything is billed), `get_task`, `view_output` (scaled previews of image outputs, so Claude can look at what it made), `list_tasks` (searchable log), `cost_report`.
 - **Standard MCP auth.** OAuth 2.1 with PKCE, dynamic client registration and RFC 9728 discovery, served by Better Auth's `mcp()` plugin. Access tokens are JWTs bound to `/mcp`.
-- **One admin.** Sign-in is Google only, and only the address in the `ADMIN_EMAIL` secret gets an account or a session.
+- **Allowlisted admins.** Sign-in is Google only, and only the addresses in the `ADMIN_EMAILS` secret get an account or a session. Each admin sees its own tasks and costs.
 - **Tasks.** Each request is a row in D1 that moves queued → running → succeeded | partial | failed (`confirming` while a lost run may still deliver). A cron advances open tasks every minute.
 - **Outputs in R2.** Every delivered file is copied to R2 at once and served at `/f/<random id>.<ext>`.
 - **Cost audit.** Each task records its quote at submit, its cost for what delivered, provider-reported tokens, the price it used, and runs that may have been billed without delivering. Prices are catalog list prices in USD (CNY at a pinned rate), not invoices.
@@ -25,7 +25,7 @@ Then `/mcp` in Claude Code, pick `obscura`, authenticate, continue with Google a
 ```sh
 pnpm install
 # apps/web/.env: BETTER_AUTH_SECRET, BETTER_AUTH_URL=http://localhost:5173, GOOGLE_CLIENT_ID,
-# GOOGLE_CLIENT_SECRET, ADMIN_EMAIL, ARK_API_KEY, TUZI_API_KEY
+# GOOGLE_CLIENT_SECRET, ADMIN_EMAILS, ARK_API_KEY, TUZI_API_KEY
 pnpm --filter web exec void db migrate
 pnpm dev
 ```

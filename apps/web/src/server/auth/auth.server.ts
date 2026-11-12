@@ -11,13 +11,16 @@ import * as schema from "@db/schema"
 /** The MCP endpoint's canonical URL. Tokens are audience-bound to it. */
 export const mcpResource = () => `${env.BETTER_AUTH_URL}/mcp`
 
-/** Only the admin's verified Google address may hold an account or a session. */
+/** Only a verified Google address listed in ADMIN_EMAILS may hold an account or a session. */
 const isAdmin = (email: string, verified: boolean) =>
-  verified && email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()
+  verified &&
+  env.ADMIN_EMAILS.split(",")
+    .map((allowed) => allowed.trim().toLowerCase())
+    .includes(email.toLowerCase())
 
 /**
  * Better Auth on D1, as the OAuth 2.1 authorization server for MCP clients. The admin signs in
- * with Google; any other address is refused before a user row or a session is written.
+ * with Google; an address outside ADMIN_EMAILS is refused before a user row or a session is written.
  * MCP clients register themselves (RFC 7591) and get JWT access tokens bound to `/mcp`.
  */
 const create = () =>
@@ -36,7 +39,7 @@ const create = () =>
       user: {
         create: { before: async (user) => isAdmin(user.email, user.emailVerified) },
       },
-      // The gate for every sign-in, including a user row created under an earlier ADMIN_EMAIL.
+      // The gate for every sign-in, including a user row whose address was later removed from ADMIN_EMAILS.
       session: {
         create: {
           before: async (session) => {
