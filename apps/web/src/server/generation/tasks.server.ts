@@ -9,6 +9,7 @@ import {
   resolveInput,
 } from "@workspace/model-providers"
 import { and, asc, db, eq, inArray } from "void/db"
+import { queues } from "void/queues"
 import { storage } from "void/storage"
 
 import { costOf, maxRunsOf, type Quote, quoteOf } from "./pricing"
@@ -17,9 +18,11 @@ import { outputKey, type Run, runOf, runsOf } from "./runs.server"
 import { isOn, offOf } from "./switches.server"
 
 /*
- * A task's state machine. `advanceTask` moves one task along and is safe to call any number of
- * times from anywhere at once (the MCP tools, the web page and the cron all call it): every
- * transition is an UPDATE guarded by the state it leaves, so only one caller wins it.
+ * A task's state machine. `startTask` sends a queued task to its provider and runs only in the
+ * `generations` queue, so a synchronous provider call outlives whoever asked for it. `advanceTask`
+ * moves one task along and is safe to call any number of times from anywhere at once (the MCP
+ * tools, the web page and the cron all call it): every transition is an UPDATE guarded by the
+ * state it leaves, so only one caller wins it.
  */
 
 export type TaskRow = typeof generationTask.$inferSelect
@@ -85,7 +88,7 @@ export const taskByClientKey = async (userId: string, clientKey: string) =>
   )[0]
 
 /**
- * Accepts a request: checks it against the model, prices it, records it as queued, then starts it.
+ * Accepts a request: checks it against the model, prices it, records it as queued, then queues its start.
  * The same `clientKey` from the same user returns the task it already made.
  */
 export async function submitTask(
@@ -123,8 +126,8 @@ export async function submitTask(
     .onConflictDoNothing()
     .returning()
   if (!task) return submitTask(owner, input) // Lost a race on the same clientKey: read the winner.
-  await advanceTask(task.id)
-  return { ok: (await taskOf(task.id))! }
+  await queues.generations.send({ taskId: task.id })
+  return { ok: task }
 }
 
 export const taskOf = async (id: string) =>
@@ -132,9 +135,31 @@ export const taskOf = async (id: string) =>
 
 const resolved = (run: Run) => "stored" in run || "failed" in run
 
+/** Claims a queued task and submits its runs. Called by the `generations` queue only. */
+export async function startTask(taskId: string, now = new Date()): Promise<void> {
+  const task = await taskOf(taskId)
+  if (task?.state !== "queued") return
+  const model = mediaModelOf(task.model)
+  if (!model) return void (await end(task, "The model left the catalog.", now))
+  const claimed = await db
+    .update(generationTask)
+    .set({ state: "running", startedAt: now })
+    .where(and(eq(generationTask.id, task.id), eq(generationTask.state, "queued")))
+    .returning({ id: generationTask.id })
+  if (!claimed.length) return
+  const input = {
+    prompt: task.prompt,
+    params: task.params as Partial<Params>,
+    references: task.references as Reference[],
+  }
+  const sent = await Promise.all(Array.from({ length: task.runs }, () => submitRun(model, input)))
+  const runs = await Promise.all(sent.map((item) => runOf(task.id, item, false)))
+  return next({ ...task, state: "running" }, model, runs, new Date())
+}
+
 /**
- * Moves one task along: a queued task is claimed and submitted, a running one polls its provider,
- * a confirming one keeps polling until its window closes. Final tasks are left alone.
+ * Moves one task along: a queued task that the queue never started fails, a running one polls its
+ * provider, a confirming one keeps polling until its window closes. Final tasks are left alone.
  */
 export async function advanceTask(taskId: string, now = new Date()): Promise<void> {
   const task = await taskOf(taskId)
@@ -144,21 +169,8 @@ export async function advanceTask(taskId: string, now = new Date()): Promise<voi
 
   if (task.state === "queued") {
     if (now.getTime() - task.createdAt.getTime() > QUEUE_LIMIT_MS)
-      return void (await end(task, "It never started within the queue limit.", now))
-    const claimed = await db
-      .update(generationTask)
-      .set({ state: "running", startedAt: now })
-      .where(and(eq(generationTask.id, task.id), eq(generationTask.state, "queued")))
-      .returning({ id: generationTask.id })
-    if (!claimed.length) return
-    const input = {
-      prompt: task.prompt,
-      params: task.params as Partial<Params>,
-      references: task.references as Reference[],
-    }
-    const sent = await Promise.all(Array.from({ length: task.runs }, () => submitRun(model, input)))
-    const runs = await Promise.all(sent.map((item) => runOf(task.id, item, false)))
-    return next({ ...task, state: "running" }, model, runs, now)
+      await end(task, "It never started within the queue limit.", now)
+    return
   }
 
   const runs = runsOf(task.providerRef)

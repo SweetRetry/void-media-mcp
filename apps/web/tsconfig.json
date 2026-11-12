@@ -15,5 +15,5 @@
       "@workspace/ui/*": ["../../packages/ui/src/*"]
     }
   },
-  "include": ["src", "db", "*.ts"]
+  "include": ["src", "db", "crons", "queues", "*.ts"]
 }

@@ -54,6 +54,7 @@ Each decision names the alternative it beat, so a later change can tell whether 
 - **Base UI under shadcn/ui.** The components were regenerated on the `base-nova` preset. Base UI has no `Form` registry item; forms use shadcn's `Field` with react-hook-form's `Controller`.
 - **Retry is the design language.** [DESIGN.md](../DESIGN.md) is the spec and `packages/ui/src/styles/retry.css` holds its tokens. Both are this repo's own files; change them like any other design decision. Retry's component deltas (`DESIGN.md` › Components) are baked into `packages/ui/src/components`.
 - **Vite+ for format, lint and test.** One toolchain (`vp fmt`, `vp lint`, `vp test`) replaces Biome, oxlint config files and a bare Vitest. `@shadcn/lint` rules run inside `vp lint`.
+- **Provider calls run in a queue.** A synchronous provider (GPT Image) holds its request open for minutes, and a Worker cancels a request's work when its caller hangs up. So `generate` only records a queued task and sends it to the `generations` queue (`apps/web/queues/generations.ts`), whose consumer makes the provider call. The cron (`apps/web/crons/generations.ts`) polls asynchronous providers every minute. In local dev a framework-mode app does not run queue consumers on `send()`, so trigger one with the `/__void/queue` command `pnpm dev` prints.
 - **One flat error body for every `/api/*` error.** `{ code, message, issues?, traceId? }`, built by one helper and read by one client function. Clients branch on `code` and the status, and a `500`'s `traceId` is the `cf-ray` id, so a user's report finds the request in Workers Logs ([api.md](api.md)).
 
 ## Data and migrations
@@ -71,9 +72,7 @@ pnpm db:generate
 These products aren't wired in. Void exports a module for each:
 
 - KV: `void/kv`
-- Queues: `void/queues`
 - Email: `void/email`
 - Durable Objects: `void/durable`
-- Crons: one file per job in `crons/`
 
 Each is one import away; Void provisions what the code imports.

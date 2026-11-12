@@ -12,6 +12,7 @@
         "db/schema.ts",
         "void.config.ts",
         "crons/*.ts",
+        "queues/*.ts",
         "scripts/*.mjs",
         "env.ts"
       ],
