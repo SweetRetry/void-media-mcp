@@ -4,16 +4,20 @@ import { betterAuth } from "better-auth"
 import { jwt } from "better-auth/plugins"
 import { tanstackStartCookies } from "better-auth/tanstack-start"
 import env from "@env"
-import { db } from "void/db"
+import { db, eq } from "void/db"
 
 import * as schema from "@db/schema"
 
 /** The MCP endpoint's canonical URL. Tokens are audience-bound to it. */
 export const mcpResource = () => `${env.BETTER_AUTH_URL}/mcp`
 
+/** Only the admin's verified Google address may hold an account or a session. */
+const isAdmin = (email: string, verified: boolean) =>
+  verified && email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()
+
 /**
- * Better Auth on D1, as the OAuth 2.1 authorization server for MCP clients. One admin account
- * exists, seeded by `scripts/seed-admin.ts`; sign-up is off, so nobody else can get a session.
+ * Better Auth on D1, as the OAuth 2.1 authorization server for MCP clients. The admin signs in
+ * with Google; any other address is refused before a user row or a session is written.
  * MCP clients register themselves (RFC 7591) and get JWT access tokens bound to `/mcp`.
  */
 const create = () =>
@@ -21,7 +25,30 @@ const create = () =>
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
-    emailAndPassword: { enabled: true, disableSignUp: true },
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        prompt: "select_account",
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: { before: async (user) => isAdmin(user.email, user.emailVerified) },
+      },
+      // The gate for every sign-in, including a user row created under an earlier ADMIN_EMAIL.
+      session: {
+        create: {
+          before: async (session) => {
+            const [owner] = await db
+              .select({ email: schema.user.email, verified: schema.user.emailVerified })
+              .from(schema.user)
+              .where(eq(schema.user.id, session.userId))
+            return !!owner && isAdmin(owner.email, owner.verified)
+          },
+        },
+      },
+    },
     // The OAuth provider serves its own token endpoint; Better Auth's session `/token` would clash.
     disabledPaths: ["/token"],
     plugins: [

@@ -28,9 +28,30 @@ CLOUDFLARE_WORKERS_SUBDOMAIN=<your-subdomain> pnpm run deploy
 
 `void deploy` writes `apps/web/void.lock.json` with your account id and the resources it created. The starter repo ignores it so no fork inherits someone else's account. In your own app, delete the `apps/web/void.lock.json` line from `.gitignore` and commit the file, so later deploys and teammates reuse the same database and bucket.
 
+## Domain
+
+The app is served only at `https://obscura.sweetretry.dev`, a Workers custom domain on the `sweetretry.dev` zone (`routes` in `apps/web/void.config.ts`). Cloudflare creates its DNS record and certificate. The `workers.dev` route is off, because `BETTER_AUTH_URL` is the OAuth issuer and the MCP resource, so the app must have one origin. The Worker keeps the name `void-media-mcp` so its D1 database and R2 bucket in `void.lock.json` stay bound.
+
 ## Secrets and env
 
-The app reads no secrets. When you add one, declare it in `apps/web/env.ts` with `defineEnv`, put the local value in `apps/web/.env`, and set the production value with `pnpm --filter web exec void secret put <NAME>`. `void secret list` shows what's set.
+`apps/web/env.ts` declares every value. Put local values in `apps/web/.env` and production values with `pnpm --filter web exec void secret put <NAME>`. `void secret list` shows what's set.
+
+| Name                                       | Production value                          |
+| :----------------------------------------- | :---------------------------------------- |
+| `BETTER_AUTH_SECRET`                       | 32 random characters or more              |
+| `BETTER_AUTH_URL`                          | `https://obscura.sweetretry.dev`          |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The Google OAuth client below             |
+| `ADMIN_EMAIL`                              | The one Google address allowed to sign in |
+| `ARK_API_KEY`, `TUZI_API_KEY`              | Provider keys                             |
+
+## Google sign-in
+
+Google Cloud Console › APIs & Services. Configure the OAuth consent screen (External, scopes `openid`, `email`, `profile`), then create an OAuth client ID of type Web application with:
+
+- Authorized JavaScript origins: `https://obscura.sweetretry.dev`, `http://localhost:5173`.
+- Authorized redirect URIs: `https://obscura.sweetretry.dev/api/auth/callback/google`, `http://localhost:5173/api/auth/callback/google`.
+
+While the consent screen is in Testing, add the admin address as a test user. Better Auth refuses any other address before it writes a user row or a session (`databaseHooks` in `apps/web/src/server/auth/auth.server.ts`).
 
 ## AI Gateway and models
 

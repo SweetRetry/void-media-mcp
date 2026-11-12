@@ -1,5 +1,5 @@
 {
-  "name": "void-media-mcp",
+  "name": "obscura",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -25,8 +25,7 @@
     "skills:update": "node scripts/agent-skills.js --update",
     "rules:check": "pnpm zod:check && pnpm ui:check && pnpm skills:check",
     "knip": "knip",
-    "verify": "pnpm format:check && pnpm md:check && pnpm lint && pnpm rules:check && pnpm typecheck && pnpm test && pnpm build && pnpm knip",
-    "seed:admin": "pnpm --filter web exec node scripts/seed-admin.mjs"
+    "verify": "pnpm format:check && pnpm md:check && pnpm lint && pnpm rules:check && pnpm typecheck && pnpm test && pnpm build && pnpm knip"
   },
   "devDependencies": {
     "@shadcn/lint": "^0.2.5",

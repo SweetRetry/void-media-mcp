@@ -11,7 +11,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Void Media" },
+      { title: "Obscura" },
       { name: "robots", content: "noindex" },
     ],
     links: [
@@ -23,6 +23,11 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap",
       },
       { rel: "stylesheet", href: appCss },
+      // The mark, hand-painted in atelier (works 009 and 010); the small sizes are drawn heavier.
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
+      { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   component: () => <Outlet />,

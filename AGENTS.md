@@ -1,4 +1,4 @@
-# Void Media MCP
+# Obscura
 
 A remote MCP server for image, video and audio generation, in a Turborepo + pnpm workspace. It deploys one Cloudflare Worker with [Void](https://github.com/voidzero-dev/void) and TanStack Start. See README.md for what it does.
 

@@ -12,8 +12,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
-import { BoxesIcon, ListIcon, LogOutIcon, PlugIcon, ReceiptIcon, SparklesIcon } from "lucide-react"
+import { BoxesIcon, ListIcon, LogOutIcon, PlugIcon, ReceiptIcon } from "lucide-react"
 
+import { Logo } from "@/components/app/logo"
 import { authClient } from "@/lib/auth-client"
 
 const SECTIONS = [
@@ -47,8 +48,8 @@ export function AppSidebar() {
               size="lg"
               render={<Link to="/tasks" onClick={() => setOpenMobile(false)} />}
             >
-              <SparklesIcon />
-              <span className="font-semibold">Void Media</span>
+              <Logo className="size-8" />
+              <span className="font-semibold">Obscura</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

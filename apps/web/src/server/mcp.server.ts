@@ -106,14 +106,14 @@ const reference = z.object({
 })
 
 /** Where a model's guide is read as an MCP resource. */
-const guideUri = (model: MediaModel) => `void-media://guides/${model.id}`
+const guideUri = (model: MediaModel) => `obscura://guides/${model.id}`
 
 const isoDate = z.iso.datetime({ offset: true }).or(z.iso.date())
 
 /** A fresh MCP server for one request, with the caller bound into every tool. */
 export function mcpServer(caller: Caller) {
   const origin = env.BETTER_AUTH_URL
-  const server = new McpServer({ name: "void-media", version: "0.1.0" })
+  const server = new McpServer({ name: "obscura", version: "0.1.0" })
 
   server.registerTool(
     "list_models",

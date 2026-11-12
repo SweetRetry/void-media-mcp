@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_app/connect")({
 
 function Connect() {
   const { mcpUrl, clients } = Route.useLoaderData()
-  const command = `claude mcp add --transport http --scope user void-media ${mcpUrl}`
+  const command = `claude mcp add --transport http --scope user obscura ${mcpUrl}`
 
   return (
     <>
