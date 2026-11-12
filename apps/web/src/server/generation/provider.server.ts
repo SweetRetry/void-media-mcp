@@ -6,7 +6,7 @@ import {
   providerOf,
   type ResolvedInput,
 } from "@workspace/model-providers"
-import { env } from "cloudflare:workers"
+import env from "@env"
 import { storage } from "void/storage"
 
 import { outputIdOf, outputKey } from "./runs.server"
@@ -26,21 +26,7 @@ const REQUEST_MS = 240_000
  */
 export type Sent = Outcome | { state: "unknown"; reason: string }
 
-/*
- * Read from `cloudflare:workers`, not `@env`: `void deploy` bundles the queue and cron handlers in a
- * separate build that resolves `void/env` to its browser copy, which throws on every server key.
- */
-declare global {
-  namespace Cloudflare {
-    interface Env {
-      ARK_API_KEY?: string
-      TUZI_API_KEY?: string
-      BETTER_AUTH_URL: string
-    }
-  }
-}
-
-/** A provider's key, by the `keyEnv` the catalog names. Read per call. */
+/** A provider's key, by the `keyEnv` the catalog names. Read per call, inside the request. */
 const keyOf = (keyEnv: string) =>
   ({ ARK_API_KEY: env.ARK_API_KEY, TUZI_API_KEY: env.TUZI_API_KEY })[keyEnv]
 
