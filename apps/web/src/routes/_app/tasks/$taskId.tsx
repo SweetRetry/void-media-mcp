@@ -12,6 +12,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react"
 
 import { CopyButton } from "@/components/app/copy-button"
+import { ImagePreview } from "@/components/app/image-preview"
 import { LocalTime } from "@/components/app/local-time"
 import { PageHeader } from "@/components/app/page-header"
 import { TaskState } from "@/components/app/task-state"
@@ -35,6 +36,10 @@ function TaskDetail() {
   const router = useRouter()
   const open = OPEN.has(task.state)
   const model = modelOf(task.model)
+  // The image outputs as one set, so the viewer steps between them.
+  const gallery = task.outputs
+    .filter((output) => !output.mime.startsWith("video/") && !output.mime.startsWith("audio/"))
+    .map((output) => ({ src: output.url, alt: task.prompt }))
   const labels = new Map<string, string>(
     model ? controlsOf(model.params).map((c) => [c.key, c.label]) : []
   )
@@ -76,19 +81,22 @@ function TaskDetail() {
             >
               {task.outputs.map((output) => (
                 <figure key={output.url} className="flex flex-col gap-2">
-                  <a href={output.url} target="_blank" rel="noreferrer">
-                    {output.mime.startsWith("video/") ? (
-                      <video src={output.url} controls className="w-full rounded-lg bg-muted">
-                        <track kind="captions" />
-                      </video>
-                    ) : output.mime.startsWith("audio/") ? (
-                      <audio src={output.url} controls className="w-full">
-                        <track kind="captions" />
-                      </audio>
-                    ) : (
+                  {output.mime.startsWith("video/") ? (
+                    <video src={output.url} controls className="w-full rounded-lg bg-muted">
+                      <track kind="captions" />
+                    </video>
+                  ) : output.mime.startsWith("audio/") ? (
+                    <audio src={output.url} controls className="w-full">
+                      <track kind="captions" />
+                    </audio>
+                  ) : (
+                    <ImagePreview
+                      slides={gallery}
+                      index={gallery.findIndex((slide) => slide.src === output.url)}
+                    >
                       <img src={output.url} alt={task.prompt} className="w-full rounded-lg" />
-                    )}
-                  </a>
+                    </ImagePreview>
+                  )}
                   <figcaption className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground tabular-nums">
                       {output.width && output.height ? `${output.width}×${output.height}` : null}
@@ -127,9 +135,7 @@ function TaskDetail() {
               <ul className="flex flex-wrap gap-4">
                 {task.references.map((reference, index) => (
                   <li key={`${index}-${reference.url}`} className="flex w-32 flex-col gap-1.5">
-                    <a href={reference.url} target="_blank" rel="noreferrer">
-                      <ReferenceMedia url={reference.url} mime={reference.mime} />
-                    </a>
+                    <ReferenceMedia url={reference.url} mime={reference.mime} />
                     <span className="text-xs text-muted-foreground">
                       {ROLES[reference.role] ?? reference.role}
                     </span>
@@ -231,33 +237,44 @@ function ReferenceMedia({ url, mime }: { url: string; mime: string }) {
         <span className="text-xs">Unavailable</span>
       </div>
     )
+  // Video and audio have no in-page player at this size, so they still open on their own.
   if (mime.startsWith("video/"))
     return (
-      <video
-        src={url}
-        muted
-        preload="metadata"
-        className={`${box} object-cover`}
-        onError={() => setGone(true)}
-      >
-        <track kind="captions" />
-      </video>
+      <a href={url} target="_blank" rel="noreferrer" aria-label="Open reference video">
+        <video
+          src={url}
+          muted
+          preload="metadata"
+          className={`${box} object-cover`}
+          onError={() => setGone(true)}
+        >
+          <track kind="captions" />
+        </video>
+      </a>
     )
   if (mime.startsWith("audio/"))
     return (
-      <div className={`${box} text-muted-foreground`}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open reference audio"
+        className={`${box} text-muted-foreground`}
+      >
         <MusicIcon className="size-5" aria-hidden />
-      </div>
+      </a>
     )
   return (
-    <img
-      ref={image}
-      src={url}
-      alt="Reference"
-      loading="lazy"
-      className={`${box} object-cover`}
-      onError={() => setGone(true)}
-    />
+    <ImagePreview slides={[{ src: url, alt: "Reference" }]}>
+      <img
+        ref={image}
+        src={url}
+        alt="Reference"
+        loading="lazy"
+        className={`${box} object-cover`}
+        onError={() => setGone(true)}
+      />
+    </ImagePreview>
   )
 }
 
