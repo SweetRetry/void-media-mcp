@@ -12,7 +12,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react"
 
 import { CopyButton } from "@/components/app/copy-button"
-import { ImagePreview } from "@/components/app/image-preview"
+import { MediaPreview } from "@/components/app/media-preview"
 import { LocalTime } from "@/components/app/local-time"
 import { PageHeader } from "@/components/app/page-header"
 import { TaskState } from "@/components/app/task-state"
@@ -39,7 +39,7 @@ function TaskDetail() {
   // The image outputs as one set, so the viewer steps between them.
   const gallery = task.outputs
     .filter((output) => !output.mime.startsWith("video/") && !output.mime.startsWith("audio/"))
-    .map((output) => ({ src: output.url, alt: task.prompt }))
+    .map((output) => ({ url: output.url, mime: output.mime, alt: task.prompt }))
   const labels = new Map<string, string>(
     model ? controlsOf(model.params).map((c) => [c.key, c.label]) : []
   )
@@ -90,12 +90,12 @@ function TaskDetail() {
                       <track kind="captions" />
                     </audio>
                   ) : (
-                    <ImagePreview
-                      slides={gallery}
-                      index={gallery.findIndex((slide) => slide.src === output.url)}
+                    <MediaPreview
+                      media={gallery}
+                      index={gallery.findIndex((item) => item.url === output.url)}
                     >
                       <img src={output.url} alt={task.prompt} className="w-full rounded-lg" />
-                    </ImagePreview>
+                    </MediaPreview>
                   )}
                   <figcaption className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground tabular-nums">
@@ -237,10 +237,10 @@ function ReferenceMedia({ url, mime }: { url: string; mime: string }) {
         <span className="text-xs">Unavailable</span>
       </div>
     )
-  // Video and audio have no in-page player at this size, so they still open on their own.
+  const media = [{ url, mime, alt: "Reference" }]
   if (mime.startsWith("video/"))
     return (
-      <a href={url} target="_blank" rel="noreferrer" aria-label="Open reference video">
+      <MediaPreview media={media} label="Play reference video">
         <video
           src={url}
           muted
@@ -250,22 +250,18 @@ function ReferenceMedia({ url, mime }: { url: string; mime: string }) {
         >
           <track kind="captions" />
         </video>
-      </a>
+      </MediaPreview>
     )
   if (mime.startsWith("audio/"))
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Open reference audio"
-        className={`${box} text-muted-foreground`}
-      >
-        <MusicIcon className="size-5" aria-hidden />
-      </a>
+      <MediaPreview media={media} label="Play reference audio">
+        <div className={`${box} text-muted-foreground`}>
+          <MusicIcon className="size-5" aria-hidden />
+        </div>
+      </MediaPreview>
     )
   return (
-    <ImagePreview slides={[{ src: url, alt: "Reference" }]}>
+    <MediaPreview media={media}>
       <img
         ref={image}
         src={url}
@@ -274,7 +270,7 @@ function ReferenceMedia({ url, mime }: { url: string; mime: string }) {
         className={`${box} object-cover`}
         onError={() => setGone(true)}
       />
-    </ImagePreview>
+    </MediaPreview>
   )
 }
 
